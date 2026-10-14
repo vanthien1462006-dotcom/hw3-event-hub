@@ -1,1 +1,224 @@
-/* stub: filled in T-04 */
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+h1 {
+  font-size: var(--font-size-3xl);
+  line-height: var(--line-height-tight);
+  color: var(--accent);
+  text-shadow: var(--glow);
+}
+
+h2 {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+  color: var(--accent-2);
+}
+
+header p,
+footer p {
+  color: var(--text-muted);
+}
+
+time {
+  color: var(--text);
+}
+
+#countdown,
+#register {
+  padding: var(--space-5) var(--space-4);
+  background-color: var(--bg-elevated);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Countdown readout */
+#countdown-timer [data-unit] {
+  padding: var(--space-3) var(--space-1) var(--space-1);
+  background-color: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-block-end: 0;
+  border-start-start-radius: var(--radius-md);
+  border-start-end-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: var(--line-height-tight);
+  color: var(--accent);
+  text-shadow: var(--glow);
+  box-shadow: var(--glow);
+}
+
+#countdown-timer .unit-label {
+  padding: var(--space-1) var(--space-1) var(--space-3);
+  background-color: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-block-start: 0;
+  border-end-start-radius: var(--radius-md);
+  border-end-end-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+#countdown-done:not([hidden]) {
+  padding: var(--space-4);
+  background-color: var(--surface);
+  border: var(--border-width) solid var(--accent-2);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glow-2);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--accent-2);
+  text-align: center;
+}
+
+/* Form fields */
+#register-form label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+#register-form input,
+#register-form textarea {
+  inline-size: 100%;
+  min-block-size: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--bg);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+#register-form textarea {
+  resize: vertical;
+}
+
+#register-form input:focus-visible,
+#register-form textarea:focus-visible {
+  border-color: var(--focus-ring);
+  box-shadow: var(--glow);
+}
+
+#register-form [aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+#register-form [id$="-hint"] {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+#register-form [id$="-error"] {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--danger);
+}
+
+#register-form [id$="-error"]:empty {
+  display: none;
+}
+
+/* Buttons */
+#submit-btn,
+#retry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-inline-size: 2.75rem;
+  min-block-size: 2.75rem;
+  padding: var(--space-2) var(--space-5);
+  background-color: var(--accent);
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-md);
+  color: var(--on-accent);
+  font-weight: 700;
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+#submit-btn:hover,
+#retry-btn:hover {
+  box-shadow: var(--glow);
+}
+
+#submit-btn:active,
+#retry-btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+#submit-btn:disabled,
+#retry-btn:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Form states */
+#form-status {
+  font-weight: 600;
+}
+
+#form-status:not(:empty) {
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+#register-form[data-state="submitting"] input,
+#register-form[data-state="submitting"] textarea,
+#register-form[data-state="submitting"] label {
+  opacity: 0.6;
+}
+
+#register-form[data-state="submitting"] #submit-btn {
+  cursor: progress;
+}
+
+#register-form[data-state="submitting"] #submit-btn::after {
+  content: "";
+  inline-size: 1em;
+  block-size: 1em;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+#register-form[data-state="success"] ~ #form-status {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+#register-form[data-state="error"] ~ #form-status {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #register-form[data-state="submitting"] #submit-btn::after {
+    animation: none;
+  }
+}
+
+@media (min-width: 48rem) {
+  #countdown,
+  #register {
+    padding: var(--space-6);
+  }
+
+  #countdown-timer [data-unit] {
+    font-size: var(--font-size-2xl);
+  }
+}

@@ -1,1 +1,105 @@
-/* stub: filled in T-04 */
+body {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--space-6) var(--space-6);
+  overflow-x: hidden;
+}
+
+.skip-link {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  z-index: 10;
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--radius-md);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+header,
+main,
+footer {
+  padding-inline: var(--space-4);
+  max-inline-size: 60rem;
+  margin-inline: auto;
+}
+
+header {
+  display: grid;
+  gap: var(--space-3);
+  padding-block: var(--space-7) var(--space-5);
+}
+
+main {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-4) var(--space-7);
+}
+
+footer {
+  padding-block: var(--space-5) var(--space-6);
+}
+
+#countdown,
+#register {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+#countdown-timer {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  grid-auto-flow: column;
+  column-gap: var(--space-2);
+}
+
+#countdown-timer [data-unit] {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+#countdown-timer .unit-label {
+  text-align: center;
+}
+
+#register-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+#register-form > p {
+  display: grid;
+  gap: var(--space-2);
+}
+
+#register-form > button,
+#retry-btn {
+  justify-self: start;
+}
+
+@media (min-width: 48rem) {
+  header {
+    padding-block-start: var(--space-8);
+  }
+
+  #countdown-timer {
+    column-gap: var(--space-4);
+  }
+
+  #register-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #register-form > p:nth-of-type(3),
+  #register-form > button {
+    grid-column: 1 / -1;
+  }
+}
