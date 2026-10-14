@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Future Web Summit 2027 (demo event)</title>
+  <meta name="description" content="Landing page for Future Web Summit 2027, a demo event: live countdown and a resilient registration form.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header>
+    <h1>Future Web Summit 2027</h1>
+    <p>
+      This is a <strong>demo event</strong> for a web development course, starting
+      <time datetime="2027-01-15T02:00:00Z">January 15, 2027, 02:00 UTC</time>.
+    </p>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <section id="countdown" aria-labelledby="countdown-title">
+      <h2 id="countdown-title">Countdown</h2>
+      <p>
+        The event starts on
+        <time id="event-time" datetime="2027-01-15T02:00:00Z">January 15, 2027, 02:00 UTC</time>.
+      </p>
+      <p id="countdown-timer" role="timer">
+        <span data-unit="days"></span><span class="unit-label">Days</span>
+        <span data-unit="hours"></span><span class="unit-label">Hours</span>
+        <span data-unit="minutes"></span><span class="unit-label">Minutes</span>
+        <span data-unit="seconds"></span><span class="unit-label">Seconds</span>
+      </p>
+      <p id="countdown-done" hidden>The event has started!</p>
+    </section>
+
+    <section id="register" aria-labelledby="register-title">
+      <h2 id="register-title">Register</h2>
+      <form id="register-form" data-state="idle" novalidate>
+        <p>
+          <label for="name">Full name</label>
+          <input type="text" id="name" name="name" autocomplete="name" required aria-describedby="name-hint name-error">
+          <span id="name-hint">Your name as it should appear on the badge.</span>
+          <span id="name-error"></span>
+        </p>
+        <p>
+          <label for="email">Email address</label>
+          <input type="email" id="email" name="email" autocomplete="email" required aria-describedby="email-hint email-error">
+          <span id="email-hint">We will send your confirmation here. Use an address ending in @fail.test to simulate a failure.</span>
+          <span id="email-error"></span>
+        </p>
+        <p>
+          <label for="message">Message (optional)</label>
+          <textarea id="message" name="message" rows="4" maxlength="300" aria-describedby="message-hint message-error"></textarea>
+          <span id="message-hint">Up to 300 characters.</span>
+          <span id="message-error"></span>
+        </p>
+        <button type="submit" id="submit-btn">Register now</button>
+      </form>
+      <button type="button" id="retry-btn" hidden>Try again</button>
+      <p id="form-status" role="status"></p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Future Web Summit. This is a demo page; no real event or registration exists.</p>
+  </footer>
+</body>
+</html>
