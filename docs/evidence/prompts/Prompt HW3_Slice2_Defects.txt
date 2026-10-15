@@ -1,0 +1,274 @@
+
+> /clear
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\Prompt HW3_Slice2.txt in the IDE.
+  This may or may not be related to the current task.</ide_opened_file>
+
+> Đọc project-rules.md. Đóng vai một code reviewer khó tính. Review commit mới
+  nhất bằng "git show HEAD" (chỉ đọc, KHÔNG sửa file ngay lúc này).
+
+  Tập trung vào lỗi hay gặp của code form do AI sinh ra: submit đúp (bấm 2 lần,
+  hoặc Enter + click), race condition giữa việc đổi trạng thái và gọi API bất
+  đồng bộ, trạng thái bị kẹt ở submitting khi có lỗi bất ngờ (thiếu
+  try/catch/finally), phản hồi cũ ghi đè trạng thái mới, hiển thị dữ liệu người
+  dùng bằng innerHTML hoặc template string vào HTML, mất dữ liệu khi lỗi,
+  focus/ARIA không được cập nhật khi đổi trạng thái, trạng thái không hợp lệ bị
+  chấp nhận.
+
+  Với mỗi vấn đề: nói rõ là lỗi THẬT (có cách tái hiện cụ thể) hay chỉ nghi
+  ngờ, kèm dòng code liên quan. Đừng bịa lỗi. Sau đó hỏi tôi có muốn sửa không.
+  Báo cáo bằng tiếng Việt.
+
+● Tôi sẽ đọc các file quy tắc và commit mới nhất (chỉ đọc).
+
+  Read 3 files, ran 1 shell command (ctrl+o to expand)
+
+● Review commit b28912f (feat(js): state-machine form)
+
+  Tôi chỉ đọc code, chưa sửa gì. Tôi đã đọc project-rules.md,
+  TASK_DECOMPOSITION.md, git show HEAD và index.html để đối chiếu id và ARIA.
+  Tôi chưa chạy trình duyệt, nên các lỗi "THẬT" dưới đây được suy ra từ việc đọc
+  code và luồng sự kiện, không phải từ việc chạy thử.
+
+  Những thứ đã kiểm tra và KHÔNG có lỗi
+
+  - Submit đúp (Enter + click, bấm nhanh): không có lỗi. Chặn bằng
+    machine.getState() !== STATES.IDLE (main.js:92 (js/main.js#L92)), đồng bộ và
+    chạy trước khi gọi API. Nút disabled không phải guard duy nhất.
+  - Phản hồi cũ ghi đè trạng thái mới: không xảy ra. Chỉ có tối đa một request
+    đang bay, vì RESET bị bỏ qua trong submitting.
+  - Chèn dữ liệu người dùng vào HTML: an toàn. Không dùng innerHTML.
+    registeredName và validationMessage đều đi qua textContent (main.js:51
+    (js/main.js#L51), main.js:67 (js/main.js#L67)).
+  - Trạng thái không hợp lệ: Object.hasOwn chặn cả key như __proto__ và toString
+    (form-state.js:22 (js/form-state.js#L22)). Event sai trả về false.
+  - Mất dữ liệu khi lỗi: form không bị reset ở nhánh REJECT, nên dữ liệu được
+    giữ.
+  - mock-api.js: đúng contract. Có một dòng console.info, timer chạy một lần rồi
+    tự hết.
+
+  Lỗi THẬT (có cách tái hiện)
+
+  1. Dữ liệu người dùng gõ trong lúc submitting bị xóa mất (main.js:103
+  (js/main.js#L103))
+  - Tái hiện: nhập form hợp lệ, bấm Register, trong 1,2 giây gõ thêm vào ô
+    Message. Khi RESOLVE chạy, form.reset() xóa cả phần vừa gõ.
+  - Mức độ: thấp.
+
+  2. Mất focus sau khi bấm "Try again" (main.js:50 (js/main.js#L50), main.js:117
+  (js/main.js#L117))
+  - Tái hiện: dùng @fail.test, đợi lỗi (focus đi vào #retry-btn), nhấn Enter.
+    RETRY làm retryBtn.hidden = true khi nút đang giữ focus, nên focus rơi về
+    <body>. Người dùng bàn phím và screen reader bị mất vị trí.
+  - Mức độ: trung bình (a11y).
+
+  3. Submit bị nuốt im lặng ở trạng thái error và success (main.js:92
+  (js/main.js#L92))
+  - Tái hiện: ở trạng thái error, nút "Register now" vẫn bật. Bấm vào thì không
+    có phản hồi nào, và cũng không chạy validate. Nút này chỉ bị disabled ở
+    submitting.
+  - Mức độ: thấp (UX).
+
+  4. Lỗi validate cũ không tự xóa khi người dùng sửa (main.js:67-68
+  (js/main.js#L67-L68))
+  - Tái hiện: submit form rỗng, rồi gõ tên hợp lệ. Thông báo lỗi và
+    aria-invalid="true" vẫn còn đến lần submit sau. Screen reader tiếp tục đọc
+    lỗi cũ qua aria-describedby.
+  - Mức độ: trung bình (a11y).
+
+  5. Tên chỉ có khoảng trắng vẫn pass validate (main.js:97 (js/main.js#L97))
+  - Tái hiện: nhập name là "   ". required chỉ kiểm tra chuỗi không rỗng, nên
+    giá trị này hợp lệ. Thông báo thành công thành "Thanks,    !".
+  - Mức độ: thấp. Việc trim và sanitize thuộc Slice 3 (sanitize.js), nên đây có
+    thể là việc để dành cho slice đó.
+
+  6. Vi phạm contract mục 5 và rule "config trong data-*" (main.js:38-43
+  (js/main.js#L38-L43))
+  - Contract nói messages và labels theo state phải nằm trong data-*, nhưng code
+    để chúng trong object JS STATUS_MESSAGES. Label của nút cũng không đổi theo
+    state.
+  - Đây là vi phạm quy tắc chứ không gây lỗi runtime.
+  - Muốn sửa đúng thì cần thêm data-* vào index.html, mà index.html không nằm
+    trong file list của Slice 2. Theo quy tắc, tôi sẽ báo chứ không tự sửa.
+
+  Chỉ NGHI NGỜ (chưa tái hiện được với code hiện tại)
+
+  7. Không có try/catch/finally quanh luồng SUBMIT → mockSubmit (main.js:98-109
+  (js/main.js#L98-L109))
+  - Dạng 1: .then(onOk, onErr) không bắt lỗi ném ra từ onOk. Nếu
+    clearFieldErrors hoặc renderState ném lỗi, sẽ có unhandled rejection và UI
+    nằm ở trạng thái nửa vời. Ví dụ clearFieldErrors sẽ ném TypeError nếu sau
+    này thêm một field không có #<id>-error.
+  - Dạng 2: machine.send('SUBMIT') đổi state trước rồi mới gọi onChange
+    (form-state.js:31-32 (js/form-state.js#L31-L32)). Nếu renderState ném lỗi,
+    hoặc mockSubmit ném đồng bộ, thì máy kẹt vĩnh viễn ở submitting vì không có
+    đường thoát.
+  - Hiện chưa kích hoạt được, nhưng đây là điểm yếu cấu trúc đúng loại lỗi hay
+    gặp ở code AI.
+
+  8. Nút submit bị disabled khi đang giữ focus (main.js:49 (js/main.js#L49))
+  - Tùy trình duyệt, focus có thể bị mất hoặc kẹt. aria-disabled kết hợp với
+    guard trạng thái sẽ ổn định hơn.
+
+  9. createFormMachine không kiểm tra onChange (form-state.js:18
+  (js/form-state.js#L18))
+  - Thiếu onChange thì send ném lỗi sau khi state đã đổi. Nếu onChange gọi send
+    lồng nhau thì thứ tự callback có thể đảo. Hiện không có trường hợp nào như
+    vậy.
+
+  10. Thông báo lỗi và focus cùng lúc
+  - Ở trạng thái error, statusNode được cập nhật rồi retryBtn.focus() chạy ngay
+    sau đó (main.js:51-54 (js/main.js#L51-L54)). Screen reader có thể đọc thông
+    báo focus và cắt ngang role="status".
+  - Chỉ là nghi ngờ, cần thử bằng screen reader thật.
+
+  11. Listener không bao giờ gỡ (main.js:112-117 (js/main.js#L112-L117))
+  - Đây là listener sống cùng vòng đời trang nên chấp nhận được. Tôi ghi lại vì
+    quy tắc nói phải cleanup listener.
+
+  Ngoài phạm vi, chỉ báo cáo
+
+  - Mục 6 cần sửa index.html, là một commit riêng.
+  - Chưa có sanitize.js (Slice 3), nên message và name hiện chưa được sanitize.
+    Đó là việc của Slice 3.
+
+  Bạn có muốn tôi sửa không? Đề xuất của tôi là sửa các mục 1, 2, 3, 4, 7 trong
+  main.js và form-state.js (state đổi sau khi onChange chạy thành công, thêm
+  try/catch/finally). Bạn cũng có thể chọn nhóm khác. Mục 5 để dành cho Slice 3,
+  mục 6 cần bạn quyết định có thêm commit HTML hay không. Mỗi sửa đổi sẽ là một
+  commit riêng, theo đúng quy tắc git của dự án.
+
+> Lỗi #2:
+  Chỉ sửa lỗi thật #2: sau khi bấm "Try again", RETRY ẩn #retry-btn đang giữ
+  focus nên focus rơi về body. Chỉ sửa js/main.js bằng thay đổi nhỏ nhất:
+  chuyển focus sang một phần tử hợp lý (ví dụ ô đầu tiên của form) trước hoặc
+  cùng lúc ẩn nút retry. Không đổi hợp đồng, không động tới file khác, không
+  console.log.
+
+  Commit:
+  git add js/main.js
+  git commit -m "fix(js): keep focus after retry"
+
+  Không push, không amend. Báo cáo bằng tiếng Việt kèm hash.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(js\main.js)
+  ⎿  Added 6 lines, removed 1 line
+      44  
+      45  let registeredName = '';
+      46  
+      47 -function renderState(newState) {                               
+      47 +function renderState(newState, previousState) {                
+      48    form.dataset.state = newState;
+      49    submitBtn.disabled = newState === STATES.SUBMITTING;
+      50 +                                                               
+      51 +  if (previousState === STATES.ERROR && newState === STATES.IDL
+         +E) {                                                           
+      52 +    fields[0].focus();                                         
+      53 +  }                                                            
+      54 +                                                               
+      55    retryBtn.hidden = newState !== STATES.ERROR;
+      56    statusNode.textContent = STATUS_MESSAGES[newState](registered
+          Name);
+      57  
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Đã sửa lỗi #2 và commit: hash 6fff7fa, message fix(js): keep focus after
+  retry.
+
+  Thay đổi (chỉ js/main.js, +6/−1):
+  - renderState nhận thêm tham số previousState. onChange của máy trạng thái đã
+    truyền sẵn tham số này, nên hợp đồng không đổi.
+  - Khi chuyển từ error sang idle (tức là sau RETRY), code gọi
+    fields[0].focus(), tức ô Full name. Việc này chạy trước dòng retryBtn.hidden
+    = ..., nên #retry-btn chưa bị ẩn lúc focus chuyển đi và focus không rơi về
+    <body>.
+
+  Đã kiểm tra:
+  - git diff --cached --stat chỉ có js/main.js.
+  - Không thêm console.log.
+  - Working tree sạch sau commit.
+  - Tôi chưa chạy thử trên trình duyệt. Để kiểm tra bằng tay: nhập email
+    x@fail.test, đợi lỗi, nhấn Enter trên "Try again". Focus phải nằm ở ô Full
+    name.
+
+  Tôi không push và không amend. Git có cảnh báo LF sang CRLF của Windows, nhưng
+  nó không ảnh hưởng đến commit.
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\hw3-event-hub\js\main.js in the IDE.
+  This may or may not be related to the current task.</ide_opened_file>
+
+> Chỉ sửa lỗi thật #4: lỗi validate cũ không tự xóa khi người dùng sửa trường.
+  Khi người dùng gõ vào một trường, xóa thông báo lỗi và aria-invalid của đúng
+  trường đó. Chỉ sửa js/main.js, thay đổi nhỏ nhất, không console.log.
+
+  Commit:
+  git add js/main.js
+  git commit -m "fix(js): clear field errors when the user edits"
+
+  Không push, không amend. Báo cáo bằng tiếng Việt kèm hash.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(js\main.js)
+  ⎿  Added 6 lines, removed 4 lines
+      84    return firstInvalid === null;
+      85  }
+      86  
+      87 +function clearFieldError(field) {                              
+      88 +  document.querySelector(`#${field.id}-error`).textContent = ''
+         +;                                                              
+      89 +  field.removeAttribute('aria-invalid');                       
+      90 +}                                                              
+      91 +                                                               
+      92  function clearFieldErrors() {
+      88 -  fields.forEach((field) => {                                  
+      89 -    document.querySelector(`#${field.id}-error`).textContent = 
+         -'';                                                            
+      90 -    field.removeAttribute('aria-invalid');                     
+      91 -  });                                                          
+      93 +  fields.forEach(clearFieldError);                             
+      94  }
+      95  
+      96  function handleSubmit(event) {
+
+● Update(js\main.js)
+  ⎿  Added 2 lines, removed 1 line
+      117  }
+      118  
+      119  form.addEventListener('submit', handleSubmit);
+      120 -form.addEventListener('input', () => {                        
+      120 +form.addEventListener('input', (event) => {                   
+      121 +  clearFieldError(event.target);                              
+      122    machine.send('RESET');
+      123  });
+      124  retryBtn.addEventListener('click', () => {
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Đã sửa lỗi #4 và commit: hash 65a1238, message fix(js): clear field errors
+  when the user edits.
+
+  Thay đổi (chỉ js/main.js, +8/−5):
+  - Tách logic xóa lỗi của một trường thành hàm clearFieldError(field). Hàm này
+    xóa textContent của #<id>-error và gỡ aria-invalid.
+  - clearFieldErrors() giờ chỉ là fields.forEach(clearFieldError), nên hành vi
+    cũ không đổi.
+  - Trong listener input, tôi gọi clearFieldError(event.target) trước
+    machine.send('RESET'). Chỉ lỗi của đúng trường đang gõ bị xóa, các trường
+    khác giữ nguyên.
+
+  Đã kiểm tra:
+  - git diff --cached --stat chỉ có js/main.js.
+  - Không có console.log.
+  - Working tree sạch sau commit.
+  - Tôi chưa chạy thử trên trình duyệt. Để kiểm tra bằng tay: submit form rỗng,
+    gõ vào ô Full name thì lỗi và aria-invalid của ô đó biến mất, lỗi của Email
+    vẫn còn.
+
+  Tôi không push và không amend. Cảnh báo LF sang CRLF của Git trên Windows
+  không ảnh hưởng đến commit.

@@ -1,0 +1,308 @@
+
+> /clear
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\Prompt HW3_Slice1.txt in the IDE.
+  This may or may not be related to the current task.</ide_opened_file>
+
+> Đọc project-rules.md. Đóng vai một code reviewer khó tính. Hãy review commit
+  mới nhất bằng "git show HEAD" (chỉ đọc, KHÔNG sửa file nào ngay lúc này).
+
+  Kiểm tra cụ thể các lỗi thường gặp của code do AI sinh ra trong bộ đếm ngược:
+  trôi thời gian (setInterval hoặc đếm giảm dần), parse ngày không có múi giờ
+  (hiểu sai thành giờ địa phương), rò rỉ timer/listener (không clearTimeout,
+  không gỡ listener), nhiều timer chạy chồng khi gọi lại, tab nền bị throttle,
+  khoảng âm khi đã qua mốc, onDone gọi nhiều lần, số hiển thị bị nhảy độ rộng,
+  chuỗi ngày không hợp lệ.
+
+  Với mỗi vấn đề: nói rõ đó là lỗi THẬT (có thể tái hiện) hay chỉ là nghi ngờ,
+  kèm dòng code liên quan. Đừng bịa lỗi. Sau đó hỏi tôi có muốn sửa không. Báo
+  cáo bằng tiếng Việt.
+
+● Tôi sẽ đọc các file quy tắc và xem commit mới nhất (chỉ đọc).
+
+  Read 1 file, ran 3 shell commands (ctrl+o to expand)
+
+● Tôi đã review commit 46a664c (js/countdown.js, js/main.js) theo
+  project-rules.md và mục 4 của TASK_DECOMPOSITION.md. Chưa sửa file nào.
+
+  Commit đáp ứng đúng contract. Tôi không tìm thấy lỗi nghiêm trọng nào trong
+  các hạng mục anh liệt kê. Có 1 lỗi thật (mức trung bình) và một số điểm chỉ là
+  nghi ngờ hoặc điểm yếu về độ bền.
+
+  Lỗi THẬT (tái hiện được)
+
+  1. pagehide làm bộ đếm chết sau khi quay lại từ bfcache (countdown.js:50-55
+  (js/countdown.js#L50-L55), countdown.js:59 (js/countdown.js#L59))
+  - pagehide gọi stop(), và stop() gỡ cả listener visibilitychange lẫn timer.
+  - Khi trang bị rời đi rồi bấm Back/Forward, trình duyệt khôi phục nguyên trạng
+    từ bfcache. Module không chạy lại, nên không ai gọi tick().
+  - Kết quả: các số đứng yên ở giá trị cũ vĩnh viễn, dù tab đã hiển thị lại.
+  - Cách tái hiện: mở trang trên Live Server, bấm link ra ngoài, bấm Back
+    (Chrome, Firefox, Safari đều có bfcache). Số giây sẽ đứng im.
+  - Contract chỉ yêu cầu stop() gỡ visibilitychange. Listener pagehide là phần
+    thêm ngoài contract, và chính nó gây ra lỗi này.
+
+  Chỉ là nghi ngờ (chưa phải lỗi với dữ liệu hiện tại)
+
+  2. Chuỗi ngày không có múi giờ bị hiểu là giờ địa phương (countdown.js:26
+  (js/countdown.js#L26))
+  - Tôi đã chạy Date.parse thật. "2027-01-15T02:00:00" (không có Z) lệch 7 tiếng
+    so với bản có Z, vì bị hiểu là giờ máy.
+  - "Jan 15 2027" cũng được chấp nhận.
+  - HTML hiện tại có Z nên chưa bị lỗi. Nhưng code chấp nhận cả chuỗi không có
+    múi giờ, trái với contract "ISO 8601 UTC".
+
+  3. Chuỗi ngày "sai lịch" không bị bắt (countdown.js:26-27
+  (js/countdown.js#L26-L27))
+  - "2027-02-31T00:00:00Z" và "...T24:00:00Z" đều được parse thành ngày hợp lệ
+    (đã chạy thử).
+  - Chỉ chuỗi rỗng, null hoặc rác hẳn mới cho NaN.
+
+  4. Ngày không hợp lệ làm module văng lỗi chưa xử lý (main.js:24
+  (js/main.js#L24), countdown.js:28 (js/countdown.js#L28))
+  - Theo contract thì ném Error là đúng.
+  - Nhưng main.js không bắt lỗi, nên người dùng thấy 4 ô trống mà không có thông
+    báo nào.
+  - Đây là nghi ngờ về trải nghiệm người dùng, không vi phạm contract.
+
+  5. Nếu onTick ném lỗi thì bộ đếm chết âm thầm (countdown.js:39-40
+  (js/countdown.js#L39-L40), countdown.js:46 (js/countdown.js#L46))
+  - setTimeout kế tiếp nằm sau onTick, nên một lần ném lỗi sẽ dừng việc lên
+    lịch.
+  - Các listener vẫn còn, và lần chuyển tab tiếp theo sẽ hồi sinh bộ đếm.
+  - Với renderRemaining hiện tại thì khó xảy ra, nên đây chỉ là rủi ro về độ
+    bền.
+
+  6. Gọi startCountdown hai lần sẽ tạo hai bộ đếm độc lập (countdown.js:25
+  (js/countdown.js#L25))
+  - Mỗi lần gọi có timerId riêng, nên không chồng timer bên trong một instance.
+  - Hiện main.js chỉ gọi một lần, nên chưa có vấn đề. Đây chỉ là trách nhiệm của
+    người gọi.
+
+  7. Số hiển thị có thể nhảy độ rộng nếu days ≥ 100 (main.js:6-8
+  (js/main.js#L6-L8))
+  - padStart(2) không đệm đủ cho 3 chữ số.
+  - Hiện còn khoảng 93 ngày nên chưa xảy ra, và days chỉ giảm dần.
+  - tabular-nums đã có ở layout.css:65 (css/layout.css#L65), nên 2 chữ số không
+    nhảy độ rộng.
+
+  8. 4 ô số trống trước khi JS chạy (index.html:35-38 (index.html#L35-L38))
+  - Script là module nên được defer. Trước tick đầu tiên, các <span data-unit>
+    rỗng.
+  - Đây là nhận xét về UX, không phải lỗi logic.
+
+  Đã kiểm tra và KHÔNG có lỗi
+
+  - Trôi thời gian: không dùng setInterval hay biến đếm giảm. Mỗi tick tính lại
+    từ Date.now().
+  - Khoảng âm: Math.max(0, …) và Number.isFinite chặn được cả NaN.
+  - onDone gọi nhiều lần: không xảy ra. Sau khi totalMs === 0, stop() chạy trước
+    onDone, nên timer và listener đã bị gỡ.
+  - Chồng timer khi chuyển tab: handleVisibilityChange gọi clearTimeout trước
+    khi tick(), nên không chồng.
+  - Tab nền bị throttle: được xử lý bằng resync khi tab hiển thị lại.
+  - Rò rỉ timer/listener: stop() dọn đủ cả timer lẫn hai listener.
+  - Quy tắc dự án: không console.log, không code chết, không var, không
+    innerHTML (dùng textContent), dùng querySelector. Commit message đúng WBS và
+    chỉ có 2 file đúng phạm vi.
+
+  Anh có muốn sửa không?
+
+  Đề xuất của tôi, theo thứ tự ưu tiên:
+  1. Sửa #1 (lỗi thật): bỏ listener pagehide để đúng contract, hoặc dùng
+     pageshow với event.persisted để tick lại.
+  2. Sửa #2 và #3: thêm bước kiểm tra chuỗi phải khớp dạng ...Z. Nếu cần chặt
+     hơn thì so sánh với new Date(ms).toISOString().
+  3. Sửa #4: thêm try/catch ở main.js để hiện thông báo thay vì ô trống.
+  4. Các mục #5-#8 có thể bỏ qua hoặc ghi vào AI_FAILURE_AUDIT.md.
+
+  Vì sửa lỗi sẽ cần một commit mới, tôi cần anh xác nhận phạm vi và message
+  commit trước khi làm. Theo quy tắc dự án, tôi không dùng --amend.
+
+> Đọc project-rules.md. Chỉ làm một việc: sửa lỗi thật trong js/countdown.js:
+  listener pagehide gọi stop() nên bộ đếm chết vĩnh viễn khi trang được khôi
+  phục từ bfcache (pageshow với event.persisted), vì module không chạy lại. Sửa
+  bằng thay đổi nhỏ nhất: bộ đếm phải tự chạy lại và đồng bộ ngay khi trang
+  được khôi phục, trong khi vẫn dọn timer và listener khi trang thật sự rời đi
+  và khi gọi stop(). Chỉ sửa js/countdown.js; giữ nguyên chữ ký hàm. Không
+  console.log, không setInterval, không code thừa. Không làm lỗi khác.
+
+  Commit:
+  git add js/countdown.js
+  git commit -m "fix(js): resume countdown after bfcache restore"
+
+  Không push, không amend. Báo cáo bằng tiếng Việt kèm hash.
+
+● Update(js\countdown.js)
+  ⎿  Added 19 lines, removed 2 lines
+      45      }
+      46    }
+      47  
+      48 +  function handlePageHide(event) {                             
+      49 +    if (event.persisted) {                                     
+      50 +      clearTimeout(timerId);                                   
+      51 +      return;                                                  
+      52 +    }                                                          
+      53 +    stop();                                                    
+      54 +  }                                                            
+      55 +                                                               
+      56 +  function handlePageShow(event) {                             
+      57 +    if (event.persisted) {                                     
+      58 +      clearTimeout(timerId);                                   
+      59 +      tick();                                                  
+      60 +    }                                                          
+      61 +  }                                                            
+      62 +                                                               
+      63    function stop() {
+      64      clearTimeout(timerId);
+      65      timerId = null;
+      66      document.removeEventListener('visibilitychange', handleVisi
+          bilityChange);
+      52 -    window.removeEventListener('pagehide', stop);              
+      67 +    window.removeEventListener('pagehide', handlePageHide);    
+      68 +    window.removeEventListener('pageshow', handlePageShow);    
+      69    }
+      70  
+      71    document.addEventListener('visibilitychange', handleVisibilit
+          yChange);
+      56 -  window.addEventListener('pagehide', stop);                   
+      72 +  window.addEventListener('pagehide', handlePageHide);         
+      73 +  window.addEventListener('pageshow', handlePageShow);         
+      74    tick();
+      75  
+      76    return stop;
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Tôi đã sửa lỗi bfcache trong js/countdown.js và commit với hash a80a1c7
+  (fix(js): resume countdown after bfcache restore). Chưa kiểm tra trên trình
+  duyệt thật.
+
+  Thay đổi
+  - Listener pagehide giờ gọi handlePageHide:
+    - Nếu event.persisted là true (trang vào bfcache), chỉ clearTimeout. Các
+      listener vẫn giữ để chờ khôi phục.
+    - Nếu trang rời đi thật, gọi stop() như trước.
+  - Thêm listener pageshow với handlePageShow. Khi event.persisted là true, nó
+    hủy timer cũ và gọi tick(), nên bộ đếm đồng bộ lại ngay khi trang được khôi
+    phục.
+  - stop() giờ gỡ cả ba listener (visibilitychange, pagehide, pageshow) và xóa
+    timer.
+  - Chữ ký hàm không đổi. Không thêm console.log, setInterval hay code thừa.
+  - Nếu visibilitychange và pageshow cùng kích hoạt khi khôi phục, cả hai đều
+    gọi clearTimeout trước tick(), nên timer không chồng.
+
+  Đã kiểm tra
+  - node --check js/countdown.js không báo lỗi cú pháp.
+  - Chỉ js/countdown.js được stage và commit.
+  - Working tree sạch sau commit. Git chỉ in cảnh báo LF/CRLF, không ảnh hưởng.
+
+  Chưa kiểm tra
+  - Tôi chưa chạy bước tái hiện thật. Anh nên thử trên http://localhost:5500:
+    bấm link ra ngoài, bấm Back, rồi xem số giây có chạy tiếp không.
+
+  Tôi không làm các mục #2–#8 trong báo cáo review, theo yêu cầu của anh.
+
+> Đọc project-rules.md. Chỉ làm một việc: sửa lỗi thật trong js/countdown.js:
+  startCountdown đang chấp nhận chuỗi ngày không có múi giờ (bị hiểu là giờ địa
+  phương, lệch theo máy) và các ngày sai lịch như 2027-02-31T00:00:00Z hay
+  2027-01-15T24:00:00Z. Hợp đồng yêu cầu ISO 8601 UTC. Hãy chỉ chấp nhận chuỗi
+  ISO 8601 có hậu tố Z và từ chối ngày không tồn tại (ví dụ kiểm tra đi vòng:
+  parse rồi toISOString và so với đầu vào đã chuẩn hóa, hoặc kiểm tra từng
+  thành phần). Thông báo lỗi ném ra phải rõ ràng. Chỉ sửa js/countdown.js;
+  không đổi chữ ký hàm và không đụng main.js. Không console.log, không code
+  thừa.
+
+  Commit:
+  git add js/countdown.js
+  git commit -m "fix(js): reject date strings without a UTC designator"
+
+  Không push, không amend. Báo cáo bằng tiếng Việt kèm hash.
+
+● Update(js\countdown.js)
+  ⎿  Added 13 lines
+       3  const SECONDS_PER_HOUR = 3600;
+       4  const SECONDS_PER_DAY = 86400;
+       5  
+       6 +const ISO_UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?
+         +:\.\d{1,3})?Z$/;                                               
+       7 +const ISO_SECONDS_LENGTH = 19;                                 
+       8 +                                                               
+       9 +function parseUtcIso(value) {                                  
+      10 +  if (typeof value !== 'string' || !ISO_UTC_PATTERN.test(value)
+         +) {                                                            
+      11 +    return NaN;                                                
+      12 +  }                                                            
+      13 +                                                               
+      14 +  const ms = Date.parse(value);                                
+      15 +  const roundTrip = Number.isNaN(ms) ? '' : new Date(ms).toISOS
+         +tring();                                                       
+      16 +  return roundTrip.slice(0, ISO_SECONDS_LENGTH) === value.slice
+         +(0, ISO_SECONDS_LENGTH) ? ms : NaN;                            
+      17 +}                                                              
+      18 +                                                               
+      19  export function getRemaining(targetMs, nowMs) {
+      20    const diff = targetMs - nowMs;
+      21    const totalMs = Number.isFinite(diff) ? Math.max(0, diff) : 0
+          ;
+
+● Update(js\countdown.js)
+  ⎿  Added 2 lines, removed 2 lines
+      31  }
+      32  
+      33  export function startCountdown({ targetIso, onTick, onDone }) {
+      34 -  const targetMs = Date.parse(targetIso);                      
+      34 +  const targetMs = parseUtcIso(targetIso);                     
+      35    if (Number.isNaN(targetMs)) {
+      36 -    throw new Error(`Invalid countdown target: "${targetIso}" i
+         -s not a valid ISO 8601 date.`);                                
+      36 +    throw new Error(`Invalid countdown target: "${targetIso}" m
+         +ust be an existing UTC date in ISO 8601 form ending with "Z", e
+         +.g. 2027-01-15T02:00:00Z.`);                                   
+      37    }
+      38  
+      39    let timerId = null;
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Tôi đã sửa js/countdown.js và commit với hash 8a564c7 (fix(js): reject date
+  strings without a UTC designator).
+
+  Thay đổi
+  - Thêm hàm parseUtcIso cùng hai hằng số ISO_UTC_PATTERN và ISO_SECONDS_LENGTH.
+    startCountdown dùng hàm này thay cho Date.parse trực tiếp.
+  - Chuỗi phải khớp dạng YYYY-MM-DDTHH:MM:SS[.mmm]Z, tức là bắt buộc có hậu tố
+    Z.
+  - Sau khi parse, hàm đi vòng qua toISOString() và so 19 ký tự đầu với đầu vào.
+    Ngày không tồn tại như 02-31 hay giờ 24:00:00 bị lệch khi đi vòng nên bị từ
+    chối.
+  - Thông báo lỗi giờ nêu rõ yêu cầu: ngày UTC có thật, dạng ISO 8601, kết thúc
+    bằng "Z", kèm ví dụ 2027-01-15T02:00:00Z.
+  - Chữ ký hàm không đổi, main.js không bị đụng, không console.log, không code
+    thừa.
+
+  Đã kiểm tra
+
+  Tôi chạy thử trong Node bằng một file tạm, đã xóa sau khi chạy:
+
+  ┌────────────────────────────────────────────────┬───────────┐
+  │                    Đầu vào                     │  Kết quả  │
+  ├────────────────────────────────────────────────┼───────────┤
+  │ 2027-01-15T02:00:00Z, 2027-01-15T02:00:00.500Z │ chấp nhận │
+  ├────────────────────────────────────────────────┼───────────┤
+  │ 2027-01-15T02:00:00 (không Z), 2027-01-15      │ từ chối   │
+  ├────────────────────────────────────────────────┼───────────┤
+  │ 2027-02-31T00:00:00Z, 2027-01-15T24:00:00Z     │ từ chối   │
+  ├────────────────────────────────────────────────┼───────────┤
+  │ …+07:00, Jan 15 2027, chuỗi rỗng, null         │ từ chối   │
+  └────────────────────────────────────────────────┴───────────┘
+
+  - node --check js/countdown.js không báo lỗi cú pháp.
+  - Chỉ js/countdown.js được stage. Working tree sạch sau commit, và Git chỉ in
+    cảnh báo LF/CRLF.
+  - IDE từng báo parseUtcIso "chưa được dùng". Đó là cảnh báo cũ, xuất hiện giữa
+    hai lần sửa và đã hết khi lần sửa thứ hai xong.
+
+  Tôi không đụng các mục khác trong báo cáo review: #4 (UX khi ngày lỗi trong
+  main.js), #5, #6, #7 và #8.

@@ -1,0 +1,238 @@
+
+> /clear
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\Prompt HW3_Slice3.txt in the IDE.
+  This may or may not be related to the current task.</ide_opened_file>
+
+> Đọc project-rules.md. Đóng vai một security reviewer khó tính. Review commit
+  mới nhất bằng "git show HEAD" (chỉ đọc, KHÔNG sửa file ngay lúc này).
+
+  Tìm lỗi THẬT trong cơ chế chống submit đúp và làm sạch dữ liệu: khoảng hở
+  race giữa kiểm tra trạng thái và disable, request bị gửi 2 lần qua Enter +
+  click, key idempotency không đổi/đổi sai lúc, sanitize có lỗ hổng (Unicode,
+  ký tự điều khiển, độ dài tính sai với emoji), hiển thị dữ liệu người dùng
+  bằng cách nào đó ngoài textContent, lỗi tích lũy listener, thông báo lỗi
+  không qua textContent, focus bị mất.
+
+  Với mỗi vấn đề: nói rõ là lỗi THẬT (có cách tái hiện cụ thể) hay chỉ nghi
+  ngờ, kèm dòng code liên quan. Đừng bịa lỗi. Sau đó hỏi tôi có muốn sửa không.
+  Báo cáo bằng tiếng Việt.
+
+● Tôi sẽ đọc project-rules.md, TASK_DECOMPOSITION.md và xem commit mới nhất (chỉ
+  đọc).
+
+  Read 6 files, ran 1 shell command (ctrl+o to expand)
+
+● Tôi kiểm chứng nhanh các nghi vấn về sanitize bằng Node (chỉ chạy hàm, không
+  sửa file).
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Review commit 69e0975 (double-submit guard & sanitization)
+
+  Tôi chỉ đọc code, chưa sửa gì. Các lỗi về sanitize tôi đã chạy sanitizeText
+  bằng Node để kiểm chứng. Các lỗi về focus và luồng submit tôi suy ra từ code,
+  chưa chạy trên trình duyệt.
+
+  Phần đã kiểm tra và không có lỗi
+
+  - Race giữa kiểm tra trạng thái và disable: không có. handleSubmit
+    (main.js:140-161 (js/main.js#L140-L161)) chạy đồng bộ, và
+    machine.send('SUBMIT') đổi state trước khi bất kỳ sự kiện nào khác chạy. Bấm
+    chuột + Enter chỉ cho 1 request, vì guard thật là state machine chứ không
+    phải nút disabled.
+  - Hiển thị dữ liệu người dùng: cả statusNode.textContent (main.js:67
+    (js/main.js#L67)) và errorNode.textContent (main.js:83 (js/main.js#L83)) đều
+    dùng textContent. Không có innerHTML nào.
+  - Tích lũy listener: không có. Cả 3 listener chỉ đăng ký một lần lúc load
+    module.
+  - Payload bị ghi đè: idempotencyKey đặt sau ...FormData (main.js:154
+    (js/main.js#L154)), nên field trong form không ghi đè được nó.
+
+  Lỗi THẬT
+
+  1. Chuỗi toàn ký tự vô hình vẫn qua validation (sanitize.js:10-12
+  (js/sanitize.js#L10-L12))
+  - stripControlCharacters chỉ bỏ \p{Cc}. Các ký tự Cf như U+200B (zero-width
+    space), U+200D và U+202E (RLO) không bị bỏ.
+  - Cách tái hiện: dán \u200B\u200B vào ô Name và nhập email hợp lệ. Kết quả
+    chạy thật là "" (2 code point), không rỗng, nên required qua. Hệ thống đăng
+    ký một người có tên vô hình.
+  - Ký tự RLO còn làm đảo chiều chữ trong câu Thanks, ${name}! (đã xác nhận
+    "abc�def" giữ nguyên). Đây là giả mạo hiển thị chứ không phải XSS.
+
+  2. Cắt độ dài làm hỏng emoji (sanitize.js:22 (js/sanitize.js#L22))
+  - Array.from(...).slice đếm theo code point, đúng theo contract, nhưng cắt
+    giữa chuỗi ghép.
+  - Cách tái hiện: 78 chữ a + 👨‍👩‍👧‍👦 với limit 80 cho ra …👨‍ (kết thúc bằng ZWJ
+    rời). 79 chữ a + cờ 🇺🇸 cho ra …🇺, mất nửa lá cờ.
+  - .trim() sau slice không bỏ được các ký tự này.
+
+  3. Idempotency key không gắn với nội dung payload (main.js:153
+  (js/main.js#L153))
+  - Key chỉ được xóa khi thành công (main.js:124 (js/main.js#L124)).
+  - Cách tái hiện: gửi với a@fail.test, gặp lỗi, bấm Try again, sửa email và
+    tên, rồi gửi lại. Request thứ hai mang cùng key nhưng body khác.
+  - Với server thật, đây là vi phạm ngữ nghĩa idempotency: nó có thể trả kết quả
+    cũ hoặc từ chối. Mock API hiện bỏ qua key nên chưa thấy hậu quả.
+
+  4. Mất focus khi submit (main.js:57-61 (js/main.js#L57-L61))
+  - Nút submit (hoặc ô đang gõ nếu bấm Enter) bị disabled, nên focus rơi về
+    body.
+  - Khi SUCCESS không có chỗ nào gọi focus() lại. role="status" có đọc thông
+    báo, nhưng người dùng bàn phím mất vị trí. Nhánh ERROR thì có
+    retryBtn.focus() nên ổn.
+
+  5. Submit bị nuốt im lặng ở SUCCESS và ERROR (main.js:143-145
+  (js/main.js#L143-L145))
+  - Sau khi thành công, form được reset. Nếu bấm Register now ngay thì state !==
+    IDLE, hàm return mà không hiện lỗi required nào.
+  - Ở ERROR, người dùng sửa field rồi nhấn Enter thì cũng không có gì xảy ra. Sự
+    kiện RESET ở main.js:166 (js/main.js#L166) không hợp lệ từ ERROR, nên chỉ
+    nút Retry mới thoát được.
+  - Guard chống submit đúp đúng, nhưng không có phản hồi nào cho người dùng.
+
+  6. Truncate im lặng thay vì báo lỗi (main.js:109 (js/main.js#L109), main.js:46
+  (js/main.js#L46))
+  - Name và email không có maxlength trong HTML. Dán tên 200 ký tự thì field bị
+    ghi đè còn 80 ký tự mà không có thông báo nào.
+  - Email dài bị cắt ở 254 có thể thành một địa chỉ khác nhưng vẫn hợp lệ. Kết
+    quả chạy thật ở cuối chuỗi là "ub.sub.sub.sub.sub.s", cụt giữa nhãn domain.
+  - Mức độ thấp, vì người dùng tự gây ra.
+
+  7. Code không bao giờ chạy tới (main.js:114-138 (js/main.js#L114-L138)) — vi
+  phạm "no dead code"
+  - Chỉ một request có thể bay tại một thời điểm, vì SUBMITTING chỉ thoát qua
+    RESOLVE hoặc REJECT. Do đó requestId !== latestRequestId không bao giờ đúng,
+    và latestRequestId thừa.
+  - Khối finally cũng không bao giờ gửi REJECT, vì lúc đó state đã là SUCCESS
+    hoặc ERROR.
+  - Một lỗi phụ: nếu form.reset() hoặc clearFieldErrors() ném exception sau
+    RESOLVE, catch gửi REJECT nhưng bị từ chối (state là SUCCESS). UI sẽ nửa
+    chừng mà không có dấu hiệu gì.
+
+  Chỉ nghi ngờ, chưa thể tái hiện
+
+  - crypto.randomUUID() ngoài secure context (main.js:153 (js/main.js#L153)):
+    hàm này là undefined khi mở qua http://192.168.x.x:5500. handleSubmit sẽ ném
+    TypeError, không gửi gì và không báo lỗi. Trên localhost:5500 thì không
+    sao.
+  - Lone surrogate (x\uD800y): xác nhận là nó đi qua sanitize nguyên vẹn. Chỉ
+    gây hại khi serialize thật, ví dụ encodeURIComponent ném URIError. Mock API
+    không bị ảnh hưởng.
+  - Không có timeout hay abort: nếu API thật treo, form kẹt ở SUBMITTING với mọi
+    field bị disable. Mock luôn resolve nên hiện chưa xảy ra.
+  - toLowerCase() sau khi cắt (main.js:110 (js/main.js#L110)): İ nở thành 2 code
+    point (254 → 508). Không khai thác được, vì type=email loại ký tự đó trước.
+
+  Vi phạm quy tắc nhỏ (không phải bug)
+
+  - FIELD_LIMITS hardcode trong JS (main.js:46 (js/main.js#L46)), trong khi rule
+    yêu cầu config nằm trong data-*.
+  - escapeHtml được export nhưng không nơi nào dùng. Contract yêu cầu nó, nên có
+    thể giữ.
+  - Newline trong message bị gộp thành khoảng trắng. Đúng contract, nhưng mất
+    xuống dòng.
+
+  Bạn có muốn tôi sửa không? Nếu có, tôi đề xuất xử lý theo thứ tự 1, 2, 3, 4,
+  5, 7 và chia thành các commit đúng quy định "một concern một commit". Bạn cũng
+  cho tôi biết có muốn xử lý mục 6 (báo lỗi thay vì cắt im lặng) không, vì mục
+  đó cần sửa cả HTML (thêm maxlength), tức là ngoài phạm vi các file của Slice
+  3.
+
+> Chỉ sửa lỗi thật #1: sanitizeText chỉ bỏ ký tự điều khiển \p{Cc}, nên chuỗi
+  toàn ký tự vô hình (U+200B zero-width space, U+2060, U+FEFF) hoặc ký tự điều
+  khiển hướng chữ (U+200E, U+200F, U+202A đến U+202E, U+2066 đến U+2069) vẫn
+  qua validation required và có thể đảo chiều hiển thị. Chỉ sửa js/sanitize.js
+  bằng thay đổi nhỏ nhất: loại các ký tự đó; KHÔNG loại U+200D (ZWJ) và U+200C
+  (ZWNJ) vì cần cho emoji ghép và một số ngôn ngữ; và sau khi làm sạch, nếu
+  chuỗi không còn ký tự nhìn thấy (chữ, số, dấu câu hay ký hiệu) thì trả về
+  chuỗi rỗng. Giữ nguyên chữ ký hàm và các hành vi khác. Không console.log,
+  không code thừa.
+
+  Commit:
+  git add js/sanitize.js
+  git commit -m "fix(js): strip invisible and bidi control characters"
+
+  Không push, không amend. Báo cáo bằng tiếng Việt kèm hash.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(js\sanitize.js)
+  ⎿  Added 10 lines, removed 6 lines
+       6    "'": '&#39;',
+       7  });
+       8  
+       9 +const INVISIBLE_AND_BIDI = /[�-��-�]/gu;                       
+      10 +const VISIBLE_CHARACTER = /[\p{L}\p{N}\p{P}\p{S}]/u;           
+      11 +                                                               
+      12  function stripControlCharacters(text) {
+      10 -  return text.replace(/\p{Cc}/gu, (char) => (/\s/u.test(char) ?
+         - ' ' : ''));                                                   
+      13 +  return text                                                  
+      14 +    .replace(INVISIBLE_AND_BIDI, '')                           
+      15 +    .replace(/\p{Cc}/gu, (char) => (/\s/u.test(char) ? ' ' : ''
+         +));                                                            
+      16  }
+      17  
+      18  export function sanitizeText(value, maxLength) {
+      19    const cleaned = stripControlCharacters(String(value ?? '').no
+          rmalize('NFC'))
+      20      .replace(/\s+/gu, ' ')
+      21      .trim();
+      22 +  const limited = Number.isFinite(maxLength)                   
+      23 +    ? Array.from(cleaned).slice(0, Math.max(0, maxLength)).join
+         +('').trim()                                                    
+      24 +    : cleaned;                                                 
+      25  
+      18 -  if (!Number.isFinite(maxLength)) {                           
+      19 -    return cleaned;                                            
+      20 -  }                                                            
+      21 -                                                               
+      22 -  return Array.from(cleaned).slice(0, Math.max(0, maxLength)).j
+         -oin('').trim();                                                
+      26 +  return VISIBLE_CHARACTER.test(limited) ? limited : '';       
+      27  }
+      28  
+      29  export function escapeHtml(value) {
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Đã sửa lỗi #1 và commit với hash 3426c18 (fix(js): strip invisible and bidi
+  control characters). Không push, không amend. Chỉ có js/sanitize.js thay đổi,
+  và working tree sạch sau commit.
+
+  Thay đổi:
+  - Ký tự bị loại: U+200B, U+2060, U+FEFF, U+200E, U+200F, U+202A–U+202E và
+    U+2066–U+2069. Chúng bị loại trước bước gộp khoảng trắng. U+FEFF thuộc \s
+    nên trước đây bị đổi thành dấu cách. Giờ nó bị xóa hẳn.
+  - Giữ nguyên: U+200D (ZWJ) và U+200C (ZWNJ).
+  - Chuỗi không còn ký tự nhìn thấy: hàm trả về chuỗi rỗng. Ký tự nhìn thấy là
+    chữ, số, dấu câu hoặc ký hiệu, tức \p{L}, \p{N}, \p{P}, \p{S}. Emoji thuộc
+    \p{S} nên vẫn được giữ.
+  - Vị trí kiểm tra: tôi đặt bước kiểm tra sau khi cắt độ dài. Nếu đặt trước,
+    một chuỗi gồm 80 ký tự vô hình rồi mới đến chữ a sẽ sót lại sau khi cắt. Vì
+    vậy cấu trúc hàm đổi nhẹ: biến limited thay cho hai lệnh return.
+  - Giữ nguyên: chữ ký hàm và các hành vi khác.
+
+  Đã kiểm chứng bằng Node (chạy sanitizeText thật):
+  - Chuỗi chỉ gồm ký tự vô hình (\u200B\u2060\uFEFF) cho ra "".
+  - Chuỗi chỉ gồm ký tự bidi cho ra "".
+  - Chuỗi chỉ gồm ZWJ/ZWNJ cho ra "".
+  - abc\u202Edef cho ra abcdef.
+  - Emoji ghép 👨‍👩 và chữ Ba Tư có ZWNJ (مهاوخی‌م) vẫn nguyên vẹn.
+  - Emoji đơn 😀 được giữ.
+  - Các chuỗi sau vẫn đúng như trước: null cho "", khoảng trắng thừa được gộp,
+    tab thành dấu cách, cắt độ dài đúng, và không truyền maxLength thì không
+    cắt.
+
+  Tôi chưa thử trên trình duyệt: chưa dán chuỗi vô hình vào ô Name để xem lỗi
+  required hiện ra. Vì sanitizeFields chạy trước validateFields (main.js:147-149
+  (js/main.js#L147-L149)), ô Name sẽ rỗng và required bắt được, nhưng bạn nên
+  thử lại một lần.
+
+  Git có cảnh báo LF sẽ đổi thành CRLF cho file này. Đó chỉ là cấu hình
+  line-ending của Windows, không ảnh hưởng nội dung commit.
+
+  Tôi chưa động tới các lỗi còn lại (#2–#7). Bạn muốn xử lý lỗi nào tiếp theo?

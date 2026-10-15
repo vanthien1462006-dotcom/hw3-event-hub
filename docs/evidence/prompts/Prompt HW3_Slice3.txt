@@ -1,0 +1,280 @@
+
+> /clear
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\Prompt HW3_Slice2_Defects.txt in the
+  IDE. This may or may not be related to the current task.</ide_opened_file>
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md (mục Slice 3 và Sanitization
+  contract). Chỉ làm Slice 3: chống submit đúp và làm sạch đầu vào. Không sửa
+  HTML/CSS; không sửa countdown.js hay mock-api.js.
+
+  Phạm vi file được sửa: js/sanitize.js (hiện là stub, ghi đè),
+  js/form-state.js và js/main.js (chỉ chỉnh phần form).
+
+  js/sanitize.js (ES module, KHÔNG biết gì về DOM):
+  - export function sanitizeText(value, maxLength): ép về chuỗi, chuẩn hóa
+  Unicode NFC, loại bỏ ký tự điều khiển (trừ xuống dòng với textarea nếu cần),
+  gộp khoảng trắng liên tiếp, trim, cắt theo maxLength.
+  - export function escapeHtml(value): thay & < > " ' bằng entity tương ứng.
+
+  Chống submit đúp (nhiều lớp):
+  1. Trong main.js: chuyển trạng thái đồng bộ NGAY (send('SUBMIT') trả về false
+  thì dừng lập tức) TRƯỚC mọi thao tác bất đồng bộ, để Enter + click nhanh
+  hoặc nhấn đúp chỉ tạo đúng 1 request.
+  2. Vô hiệu hóa nút submit và các control bằng thuộc tính disabled (hoặc
+  fieldset disabled) trong lúc submitting, bỏ vô hiệu hóa khi quay về idle; đặt
+  aria-busy="true" trên form khi đang submit.
+  3. Gắn idempotency key (crypto.randomUUID()) vào payload mỗi lần đăng ký;
+  reset key sau khi success.
+  4. Xử lý finally để không kẹt trạng thái, và bỏ qua kết quả của một request
+  đã lỗi thời.
+
+  Sanitize:
+  - Trước khi gửi, làm sạch name, email (trim, lowercase), message bằng
+  sanitizeText với giới hạn hợp lý (name 80, email 254, message 300).
+  - Mọi chỗ hiển thị dữ liệu người dùng (ví dụ lời chào "Thanks, <tên>!") chỉ
+  dùng textContent. Nếu bắt buộc ghép chuỗi HTML thì phải dùng escapeHtml,
+  nhưng ưu tiên không dùng HTML.
+
+  Tự kiểm tra: Select-String -Path js\*.js -Pattern '\bvar\b|innerHTML|outerHTM
+  L|insertAdjacentHTML|document\.write|eval\(|console\.log' phải rỗng.
+
+  Hướng dẫn tôi cách test: payload XSS, nhấn đúp nhanh, Enter + click, và đếm
+  số dòng "[mock-api] request" trong Console.
+
+  Commit chỉ 3 file:
+  git add js/sanitize.js js/form-state.js js/main.js
+  git commit -m "feat(js): double-submit guard & input sanitization"
+
+  Không push.
+
+● Tôi sẽ đọc các file quy tắc và code hiện tại trước.
+
+  Read 5 files (ctrl+o to expand)
+
+● Write(js\sanitize.js)
+  ⎿  Added 27 lines, removed 1 line
+       1 -// stub: filled in Slice 3                                     
+       1 +const HTML_ESCAPES = Object.freeze({                           
+       2 +  '&': '&amp;',                                                
+       3 +  '<': '&lt;',                                                 
+       4 +  '>': '&gt;',                                                 
+       5 +  '"': '&quot;',                                               
+       6 +  "'": '&#39;',                                                
+       7 +});                                                            
+       8 +                                                               
+       9 +function stripControlCharacters(text) {                        
+      10 +  return text.replace(/\p{Cc}/gu, (char) => (/\s/u.test(char) ?
+         + ' ' : ''));                                                   
+      11 +}                                                              
+      12 +                                                               
+      13 +export function sanitizeText(value, maxLength) {               
+      14 +  const cleaned = stripControlCharacters(String(value ?? '').no
+         +rmalize('NFC'))                                                
+      15 +    .replace(/\s+/gu, ' ')                                     
+      16 +    .trim();                                                   
+      17 +                                                               
+      18 +  if (!Number.isFinite(maxLength)) {                           
+      19 +    return cleaned;                                            
+      20 +  }                                                            
+      21 +                                                               
+      22 +  return Array.from(cleaned).slice(0, Math.max(0, maxLength)).j
+         +oin('').trim();                                                
+      23 +}                                                              
+      24 +                                                               
+      25 +export function escapeHtml(value) {                            
+      26 +  return String(value ?? '').replace(/[&<>"']/g, (char) => HTML
+         +_ESCAPES[char]);                                               
+      27 +}                                                              
+
+● Update(js\main.js)
+  ⎿  Added 47 lines, removed 14 lines
+       93    fields.forEach(clearFieldError);
+       94  }
+       95  
+       96 +function sanitizeFields() {                                   
+       97 +  fields.forEach((field) => {                                 
+       98 +    const clean = sanitizeText(field.value, FIELD_LIMITS[field
+          +.name]);                                                      
+       99 +    field.value = field.type === 'email' ? clean.toLowerCase()
+          + : clean;                                                     
+      100 +  });                                                         
+      101 +}                                                             
+      102 +                                                              
+      103 +async function register(payload) {                            
+      104 +  const requestId = ++latestRequestId;                        
+      105 +                                                              
+      106 +  try {                                                       
+      107 +    await mockSubmit(payload);                                
+      108 +                                                              
+      109 +    if (requestId !== latestRequestId) {                      
+      110 +      return;                                                 
+      111 +    }                                                         
+      112 +                                                              
+      113 +    idempotencyKey = null;                                    
+      114 +    registeredName = payload.name;                            
+      115 +    machine.send('RESOLVE');                                  
+      116 +    form.reset();                                             
+      117 +    clearFieldErrors();                                       
+      118 +  } catch {                                                   
+      119 +    if (requestId === latestRequestId) {                      
+      120 +      machine.send('REJECT');                                 
+      121 +    }                                                         
+      122 +  } finally {                                                 
+      123 +    if (requestId === latestRequestId && machine.getState() ==
+          += STATES.SUBMITTING) {                                        
+      124 +      machine.send('REJECT');                                 
+      125 +    }                                                         
+      126 +  }                                                           
+      127 +}                                                             
+      128 +                                                              
+      129  function handleSubmit(event) {
+      130    event.preventDefault();
+      131  
+       99 -  if (machine.getState() !== STATES.IDLE || !validateFields())
+          - {                                                            
+      132 +  if (machine.getState() !== STATES.IDLE) {                   
+      133      return;
+      134    }
+      135  
+      103 -  const payload = Object.fromEntries(new FormData(form));     
+      104 -  registeredName = payload.name;                              
+      105 -  machine.send('SUBMIT');                                     
+      136 +  sanitizeFields();                                           
+      137  
+      107 -  mockSubmit(payload).then(                                   
+      108 -    () => {                                                   
+      109 -      machine.send('RESOLVE');                                
+      110 -      form.reset();                                           
+      111 -      clearFieldErrors();                                     
+      112 -    },                                                        
+      113 -    () => {                                                   
+      114 -      machine.send('REJECT');                                 
+      115 -    },                                                        
+      116 -  );                                                          
+      138 +  if (!validateFields()) {                                    
+      139 +    return;                                                   
+      140 +  }                                                           
+      141 +                                                              
+      142 +  idempotencyKey ??= crypto.randomUUID();                     
+      143 +  const payload = { ...Object.fromEntries(new FormData(form)),
+          + idempotencyKey };                                            
+      144 +                                                              
+      145 +  if (!machine.send('SUBMIT')) {                              
+      146 +    return;                                                   
+      147 +  }                                                           
+      148 +                                                              
+      149 +  register(payload);                                          
+      150  }
+      151  
+      152  form.addEventListener('submit', handleSubmit);
+
+● Update(js\main.js)
+  ⎿  Added 11 lines, removed 1 line
+      42    [STATES.ERROR]: () => 'Something went wrong. Please try again
+          .',
+      43  });
+      44  
+      45 +const FIELD_LIMITS = Object.freeze({ name: 80, email: 254, mess
+         +age: 300 });                                                   
+      46 +                                                               
+      47  let registeredName = '';
+      48 +let idempotencyKey = null;                                     
+      49 +let latestRequestId = 0;                                       
+      50  
+      51  function renderState(newState, previousState) {
+      52 +  const isBusy = newState === STATES.SUBMITTING;               
+      53 +                                                               
+      54    form.dataset.state = newState;
+      49 -  submitBtn.disabled = newState === STATES.SUBMITTING;         
+      55 +  form.setAttribute('aria-busy', String(isBusy));              
+      56 +  submitBtn.disabled = isBusy;                                 
+      57 +  fields.forEach((field) => {                                  
+      58 +    field.disabled = isBusy;                                   
+      59 +  });                                                          
+      60  
+      61    if (previousState === STATES.ERROR && newState === STATES.IDL
+          E) {
+      62      fields[0].focus();
+
+● Update(js\main.js)
+  ⎿  Added 1 line
+      1  import { startCountdown } from './countdown.js';
+      2  import { STATES, createFormMachine } from './form-state.js';
+      3  import { mockSubmit } from './mock-api.js';
+      4 +import { sanitizeText } from './sanitize.js';                   
+      5  
+      6  const eventTime = document.querySelector('#event-time');
+      7  const doneMessage = document.querySelector('#countdown-done');
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Lệnh tự kiểm tra rỗng (đạt). Lỗi chỉ do quoting của lệnh thử node; tôi chạy
+  lại bằng file tạm trong scratchpad.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Kết quả đúng. Commit đúng 3 file như yêu cầu.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Slice 3 đã xong và commit: 69e0975 feat(js): double-submit guard & input
+  sanitization. Chưa push. Tôi chưa mở trang trong trình duyệt, nên các bài test
+  bên dưới là việc bạn cần chạy.
+
+  Đã kiểm tra
+
+  - Lệnh Select-String tự kiểm tra trả về rỗng, tức là không có var, innerHTML,
+    eval, console.log...
+  - Tôi chạy thử sanitize.js bằng Node:
+    - "  a\0b\tc\n\nd  " thành "ab c d".
+    - "😀😀😀" cắt còn 2 thì ra "😀😀", emoji không bị cắt đôi.
+    - null thành "".
+    - escapeHtml thay đúng cả 5 ký tự & < > " '.
+
+  Thay đổi
+
+  - js/sanitize.js: có sanitizeText và escapeHtml, không đụng tới DOM.
+    - Tab và xuống dòng được đổi thành dấu cách trước khi xóa các ký tự điều
+      khiển còn lại, để từ không bị dính vào nhau.
+    - sanitizeText gộp cả xuống dòng của textarea thành dấu cách, theo đúng
+      contract mục 6.
+  - js/main.js (chỉ phần form):
+    - Chặn submit đúp: machine.send('SUBMIT') chạy đồng bộ, trả về false thì
+      dừng ngay, trước mọi thao tác bất đồng bộ.
+    - Vô hiệu hóa: nút submit và các field bị disabled, form có aria-busy, tất
+      cả được bỏ khi quay về idle. Payload đọc bằng FormData trước khi disable,
+      vì field bị disable sẽ không có trong FormData.
+    - Idempotency key: crypto.randomUUID() được tạo một lần mỗi lần đăng ký và
+      giữ nguyên khi retry. Key được reset sau khi success.
+    - Request lỗi thời: có requestId để bỏ qua kết quả cũ, và finally đảm bảo
+      form không kẹt ở submitting.
+    - Làm sạch trước khi gửi: name 80, email 254 và lowercase, message 300. Giá
+      trị đã làm sạch được ghi lại vào field rồi mới validate, nên tên chỉ gồm
+      khoảng trắng sẽ bị báo lỗi required.
+    - Hiển thị: lời chào vẫn chỉ dùng textContent.
+  - js/form-state.js: không cần sửa, vì máy trạng thái đã đúng contract. Tôi vẫn
+    đưa file này vào git add theo lệnh của bạn, nhưng nó không nằm trong
+    commit.
+
+  Cách test (Live Server http://localhost:5500, mở DevTools, tab Console)
+
+  1. Payload XSS:
+     - Nhập name <img src=x onerror=alert(1)>, email a@b.co, rồi submit.
+     - Không được hiện alert. Dòng chào hiển thị nguyên chuỗi như văn bản
+       thường.
+     - Thử thêm tên có ký tự điều khiển (dán chuỗi có tab hoặc xuống dòng) và
+       tên dài hơn 80 ký tự để xem bị cắt.
+  2. Nhấn đúp nhanh: nhập hợp lệ rồi double-click nút Submit. Console phải có
+     đúng 1 dòng [mock-api] request.
+  3. Enter + click:
+     - Đứng trong ô name, nhấn Enter rồi click nút ngay lập tức (hoặc giữ
+       Enter).
+     - Vẫn chỉ 1 dòng [mock-api] request, và nút cùng các field bị disabled
+       trong lúc chờ.
+  4. Đếm request: bấm Clear console trước mỗi lần thử, rồi đếm số dòng
+     [mock-api] request.
+  5. Idempotency key và retry: dùng email x@fail.test để vào trạng thái error,
+     bấm Retry rồi submit lại. Gõ form.getAttribute('aria-busy') trong lúc đang
+     submit, kết quả phải là "true".

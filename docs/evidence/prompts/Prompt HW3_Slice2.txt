@@ -1,0 +1,317 @@
+
+> /clear
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\Prompt HW3_Slice1_Defects.txt in the
+  IDE. This may or may not be related to the current task.</ide_opened_file>
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md (mục Slice 2, State machine
+  contract, Mock API contract). Chỉ làm Slice 2: form dạng state machine. Không
+  làm sanitize hay chống submit đúp tinh vi (Slice 3 làm); không sửa HTML/CSS;
+  không sửa countdown.js.
+
+  Phạm vi file được sửa: js/form-state.js, js/mock-api.js (hiện là stub, ghi
+  đè) và js/main.js (chỉ thêm phần form, giữ nguyên phần countdown).
+
+  js/form-state.js (ES module, KHÔNG biết gì về DOM):
+  - export const STATES = Object.freeze({ IDLE: 'idle', SUBMITTING:
+  'submitting', SUCCESS: 'success', ERROR: 'error' }).
+  - Bảng chuyển trạng thái dạng dữ liệu (không dùng chuỗi if/else dài): idle
+  --SUBMIT--> submitting; submitting --RESOLVE--> success; submitting
+  --REJECT--> error; error --RETRY--> idle; success --RESET--> idle.
+  - export function createFormMachine({ onChange }): trả về { send(event),
+  getState() }. send trả về true nếu chuyển trạng thái hợp lệ; sự kiện không
+  hợp lệ thì bỏ qua và trả về false. onChange(newState, oldState) được gọi sau
+  mỗi lần chuyển.
+
+  js/mock-api.js (ES module):
+  - export function mockSubmit(payload): trả về Promise, đợi ~1200ms, reject
+  với Error nếu payload.email kết thúc bằng "@fail.test", ngược lại resolve({
+  id: một chuỗi ngẫu nhiên }). In đúng một dòng console.info('[mock-api]
+  request') cho mỗi lần gọi (đây là ngoại lệ được phép với quy tắc console).
+
+  js/main.js (thêm phần form):
+  - Lấy form#register-form, nút #submit-btn, #retry-btn, p#form-status bằng
+  querySelector.
+  - Tạo máy trạng thái với onChange: đặt form.dataset.state = newState; cập
+  nhật nút và p#form-status bằng textContent: submitting -> "Submitting your
+  registration..."; success -> "Thanks, <tên>! You are registered." (tên chèn
+  bằng textContent); error -> "Something went wrong. Please try again."; idle
+  -> xóa chữ trạng thái.
+  - Submit handler: preventDefault; validate bằng Constraint Validation API và
+  hiển thị lỗi từng trường vào p.field-error bằng textContent + aria-invalid;
+  nếu hợp lệ thì send('SUBMIT'), gọi mockSubmit(dữ liệu), rồi send('RESOLVE')
+  hoặc send('REJECT').
+  - Khi ERROR: hiện #retry-btn (bỏ hidden) và đưa focus vào #form-status hoặc
+  nút retry; click retry -> send('RETRY'), ẩn nút, giữ nguyên dữ liệu đã nhập.
+  - Khi SUCCESS: reset form và cho phép đăng ký lại bằng send('RESET') sau khi
+  người dùng chỉnh sửa hoặc có nút phù hợp trong phạm vi HTML hiện có (không
+  sửa HTML: nếu cần thì tự động RESET khi người dùng bắt đầu gõ vào trường).
+  - Không innerHTML; const/let; không var; không console.log (trừ console.info
+  trong mock-api).
+
+  Tự kiểm tra: Select-String -Path js\*.js -Pattern
+  '\bvar\b|innerHTML|console\.log|setInterval' phải rỗng.
+
+  Hướng dẫn tôi cách test máy trạng thái riêng bằng dynamic import trong
+  Console.
+
+  Commit chỉ 3 file:
+  git add js/form-state.js js/mock-api.js js/main.js
+  git commit -m "feat(js): state-machine form"
+
+  Không push.
+
+● Mình đọc các file quy tắc và code hiện có trước.
+
+  Searched for 2 patterns, read 5 files (ctrl+o to expand)
+
+● Write(js\form-state.js)
+  ⎿  Added 41 lines, removed 1 line
+       1 -// stub: filled in Slice 2                                     
+       1 +export const STATES = Object.freeze({                          
+       2 +  IDLE: 'idle',                                                
+       3 +  SUBMITTING: 'submitting',                                    
+       4 +  SUCCESS: 'success',                                          
+       5 +  ERROR: 'error',                                              
+       6 +});                                                            
+       7 +                                                               
+       8 +const TRANSITIONS = Object.freeze({                            
+       9 +  [STATES.IDLE]: Object.freeze({ SUBMIT: STATES.SUBMITTING }), 
+      10 +  [STATES.SUBMITTING]: Object.freeze({                         
+      11 +    RESOLVE: STATES.SUCCESS,                                   
+      12 +    REJECT: STATES.ERROR,                                      
+      13 +  }),                                                          
+      14 +  [STATES.ERROR]: Object.freeze({ RETRY: STATES.IDLE }),       
+      15 +  [STATES.SUCCESS]: Object.freeze({ RESET: STATES.IDLE }),     
+      16 +});                                                            
+      17 +                                                               
+      18 +export function createFormMachine({ onChange }) {              
+      19 +  let state = STATES.IDLE;                                     
+      20 +                                                               
+      21 +  function send(event) {                                       
+      22 +    const next = Object.hasOwn(TRANSITIONS[state], event)      
+      23 +      ? TRANSITIONS[state][event]                              
+      24 +      : undefined;                                             
+      25 +                                                               
+      26 +    if (next === undefined) {                                  
+      27 +      return false;                                            
+      28 +    }                                                          
+      29 +                                                               
+      30 +    const previous = state;                                    
+      31 +    state = next;                                              
+      32 +    onChange(next, previous);                                  
+      33 +    return true;                                               
+      34 +  }                                                            
+      35 +                                                               
+      36 +  function getState() {                                        
+      37 +    return state;                                              
+      38 +  }                                                            
+      39 +                                                               
+      40 +  return { send, getState };                                   
+      41 +}                                                              
+
+● Write(js\mock-api.js)
+  ⎿  Added 19 lines, removed 1 line
+       1 -// stub: filled in Slice 2                                     
+       1 +const DELAY_MS = 1200;                                         
+       2 +const FAIL_SUFFIX = '@fail.test';                              
+       3 +                                                               
+       4 +export function mockSubmit(payload) {                          
+       5 +  console.info('[mock-api] request');                          
+       6 +                                                               
+       7 +  return new Promise((resolve, reject) => {                    
+       8 +    setTimeout(() => {                                         
+       9 +      const email = String(payload?.email ?? '').toLowerCase();
+      10 +                                                               
+      11 +      if (email.endsWith(FAIL_SUFFIX)) {                       
+      12 +        reject(new Error('Mock API rejected the request'));    
+      13 +        return;                                                
+      14 +      }                                                        
+      15 +                                                               
+      16 +      resolve({ id: Math.random().toString(36).slice(2) });    
+      17 +    }, DELAY_MS);                                              
+      18 +  });                                                          
+      19 +}                                                              
+
+● Update(js\main.js)
+  ⎿  Added 88 lines
+       26    onTick: renderRemaining,
+       27    onDone: showDone,
+       28  });
+       29 +                                                              
+       30 +const form = document.querySelector('#register-form');        
+       31 +const submitBtn = document.querySelector('#submit-btn');      
+       32 +const retryBtn = document.querySelector('#retry-btn');        
+       33 +const statusNode = document.querySelector('p#form-status');   
+       34 +const fields = form.querySelectorAll('input, textarea');      
+       35 +                                                              
+       36 +const STATUS_MESSAGES = Object.freeze({                       
+       37 +  [STATES.IDLE]: () => '',                                    
+       38 +  [STATES.SUBMITTING]: () => 'Submitting your registration...'
+          +,                                                             
+       39 +  [STATES.SUCCESS]: (name) => `Thanks, ${name}! You are regist
+          +ered.`,                                                       
+       40 +  [STATES.ERROR]: () => 'Something went wrong. Please try agai
+          +n.',                                                          
+       41 +});                                                           
+       42 +                                                              
+       43 +let registeredName = '';                                      
+       44 +                                                              
+       45 +function renderState(newState) {                              
+       46 +  form.dataset.state = newState;                              
+       47 +  submitBtn.disabled = newState === STATES.SUBMITTING;        
+       48 +  retryBtn.hidden = newState !== STATES.ERROR;                
+       49 +  statusNode.textContent = STATUS_MESSAGES[newState](registere
+          +dName);                                                       
+       50 +                                                              
+       51 +  if (newState === STATES.ERROR) {                            
+       52 +    retryBtn.focus();                                         
+       53 +  }                                                           
+       54 +}                                                             
+       55 +                                                              
+       56 +const machine = createFormMachine({ onChange: renderState }); 
+       57 +                                                              
+       58 +function validateFields() {                                   
+       59 +  let firstInvalid = null;                                    
+       60 +                                                              
+       61 +  fields.forEach((field) => {                                 
+       62 +    const errorNode = document.querySelector(`#${field.id}-err
+          +or`);                                                         
+       63 +    const isValid = field.validity.valid;                     
+       64 +                                                              
+       65 +    errorNode.textContent = isValid ? '' : field.validationMes
+          +sage;                                                         
+       66 +    field.setAttribute('aria-invalid', String(!isValid));     
+       67 +                                                              
+       68 +    if (!isValid && firstInvalid === null) {                  
+       69 +      firstInvalid = field;                                   
+       70 +    }                                                         
+       71 +  });                                                         
+       72 +                                                              
+       73 +  if (firstInvalid !== null) {                                
+       74 +    firstInvalid.focus();                                     
+       75 +  }                                                           
+       76 +                                                              
+       77 +  return firstInvalid === null;                               
+       78 +}                                                             
+       79 +                                                              
+       80 +function clearFieldErrors() {                                 
+       81 +  fields.forEach((field) => {                                 
+       82 +    document.querySelector(`#${field.id}-error`).textContent =
+          + '';                                                          
+       83 +    field.removeAttribute('aria-invalid');                    
+       84 +  });                                                         
+       85 +}                                                             
+       86 +                                                              
+       87 +function handleSubmit(event) {                                
+       88 +  event.preventDefault();                                     
+       89 +                                                              
+       90 +  if (machine.getState() !== STATES.IDLE || !validateFields())
+          + {                                                            
+       91 +    return;                                                   
+       92 +  }                                                           
+       93 +                                                              
+       94 +  const payload = Object.fromEntries(new FormData(form));     
+       95 +  registeredName = payload.name;                              
+       96 +  machine.send('SUBMIT');                                     
+       97 +                                                              
+       98 +  mockSubmit(payload).then(                                   
+       99 +    () => {                                                   
+      100 +      machine.send('RESOLVE');                                
+      101 +      form.reset();                                           
+      102 +      clearFieldErrors();                                     
+      103 +    },                                                        
+      104 +    () => {                                                   
+      105 +      machine.send('REJECT');                                 
+      106 +    },                                                        
+      107 +  );                                                          
+      108 +}                                                             
+      109 +                                                              
+      110 +form.addEventListener('submit', handleSubmit);                
+      111 +form.addEventListener('input', () => {                        
+      112 +  machine.send('RESET');                                      
+      113 +});                                                           
+      114 +retryBtn.addEventListener('click', () => {                    
+      115 +  machine.send('RETRY');                                      
+      116 +});                                                           
+
+● Update(js\main.js)
+  ⎿  Added 2 lines
+      1  import { startCountdown } from './countdown.js';
+      2 +import { STATES, createFormMachine } from './form-state.js';    
+      3 +import { mockSubmit } from './mock-api.js';                     
+      4  
+      5  const eventTime = document.querySelector('#event-time');
+      6  const doneMessage = document.querySelector('#countdown-done');
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Mình vừa chạy xong kiểm tra tự động (sạch) và thử máy trạng thái bằng Node
+  (đúng). Giờ mình commit 3 file.
+
+  Committed b28912f (ctrl+o to expand)
+
+● Slice 2 xong và đã commit b28912f (feat(js): state-machine form), chỉ gồm 3
+  file. Mình chưa push.
+
+  Đã làm
+
+  - js/form-state.js: có STATES (đã freeze) và bảng chuyển trạng thái dạng dữ
+    liệu. createFormMachine({ onChange }) trả về { send, getState }. Sự kiện
+    không hợp lệ trả về false và không gọi onChange. Mình dùng Object.hasOwn,
+    nên các tên như 'toString' cũng bị từ chối đúng.
+  - js/mock-api.js: mockSubmit đợi 1200ms, in đúng một dòng
+    console.info('[mock-api] request'). Email kết thúc bằng @fail.test (không
+    phân biệt hoa thường) thì reject, còn lại resolve { id }.
+  - js/main.js: giữ nguyên phần countdown, thêm phần form.
+    - Validate bằng Constraint Validation API, ghi lỗi từng trường bằng
+      textContent và aria-invalid.
+    - Trạng thái lỗi hiện #retry-btn và đưa focus vào đó.
+    - Retry giữ nguyên dữ liệu đã nhập.
+    - Thành công thì reset form. Khi người dùng bắt đầu gõ lại, form tự RESET.
+
+  Đã kiểm tra
+
+  - Select-String tìm var, innerHTML, console.log, setInterval trong js\*.js:
+    kết quả rỗng.
+  - Chạy máy trạng thái bằng Node, cho ra đúng chuỗi: RESOLVE ở idle trả false,
+    rồi SUBMIT, REJECT, RETRY, SUBMIT, RESOLVE, RESET đều trả true, và
+    'toString' trả false.
+  - Chưa test trên trình duyệt qua Live Server (localhost:5500).
+
+  Cần báo (ngoài phạm vi, mình không sửa)
+
+  - HTML hiện dùng <span id="name-error">, không có p.field-error. Mình chọn lỗi
+    bằng #<id>-error để khớp HTML hiện tại.
+  - Hợp đồng nói cấu hình thông điệp nằm trong data-* attribute, nhưng bạn cấm
+    sửa HTML. Vì vậy mình để bảng thông điệp trong STATUS_MESSAGES ở main.js.
+    Nếu muốn đúng hợp đồng, cần một task HTML riêng.
+
+  Cách test máy trạng thái trong Console
+
+  Mở http://localhost:5500, vào DevTools > Console, rồi dán:
+
+  const { createFormMachine, STATES } = await import('/js/form-state.js');
+  const m = createFormMachine({ onChange: (n, o) => console.log(o, '->', n) });
+
+  m.getState();      // 'idle'
+  m.send('RESOLVE'); // false: không hợp lệ ở idle, onChange không chạy
+  m.send('SUBMIT');  // true:  idle -> submitting
+  m.send('SUBMIT');  // false: đang submitting
+  m.send('REJECT');  // true:  submitting -> error
+  m.send('RETRY');   // true:  error -> idle
+  m.send('SUBMIT'); m.send('RESOLVE'); // success
+  m.send('RESET');   // true:  success -> idle
+  m.send('FOO');     // false
+
+  Test mock API:
+
+  const { mockSubmit } = await import('/js/mock-api.js');
+  await mockSubmit({ email: 'a@b.com' });          // sau ~1.2s: { id: '...' }
+  await mockSubmit({ email: 'x@FAIL.test' }).catch(e => e.message); // bị reject
+
+  Mỗi lần gọi mockSubmit sẽ in một dòng [mock-api] request.
+
+  Test form thật: nhập email thường để thấy data-state đổi idle → submitting →
+  success. Nhập x@fail.test thì ra error, nút Try again hiện và nhận focus.

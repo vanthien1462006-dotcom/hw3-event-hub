@@ -1,0 +1,1115 @@
+
+> Hãy đọc project-rules.md. Đây là HW3: Resilient Event Hub & AI Failure Audit
+  (repo hw3-event-hub). Nhiệm vụ DUY NHẤT lúc này là viết TASK_DECOMPOSITION.md
+  bằng tiếng Anh, chưa viết code HTML/CSS/JS.
+
+  Phạm vi file: chỉ tạo TASK_DECOMPOSITION.md.
+
+  Nội dung bắt buộc (tiếng Anh tự nhiên):
+  1. Overview: landing page cho sự kiện demo "Future Web Summit 2027 (demo
+  event)", vanilla HTML/CSS/JS, ES modules, mobile-first 375px, phong cách
+  "cyber blueprint" (nền navy tối, lưới mờ, accent cyan/violet phát sáng, font
+  monospace hệ thống).
+  2. Bảng WBS (ID, task, file, acceptance criteria, commit message): T-01 spec;
+  S1a file CSS giữ chỗ "chore(css): add empty stylesheet placeholders"; S1b
+  file JS giữ chỗ "chore(js): add empty module placeholders"; T-02 HTML (chỉ
+  index.html) "feat(html): landing page structure"; T-03 tokens & reset
+  "feat(css): design tokens & box-sizing reset"; T-04 layout + components +
+  form state styles "feat(css): layout, components & form state styles"; Slice
+  1 countdown (js/countdown.js, js/main.js) "feat(js): drift-free countdown
+  engine"; Slice 2 state machine form (js/form-state.js, js/mock-api.js,
+  js/main.js) "feat(js): state-machine form"; Slice 3 double-submit &
+  sanitization (js/sanitize.js, js/form-state.js, js/main.js) "feat(js):
+  double-submit guard & input sanitization"; Audit (AI_FAILURE_AUDIT.md)
+  "docs(audit): AI failure mode report".
+  3. HTML contract: header h1; section#countdown với <time id="event-time"
+  datetime="2027-01-15T02:00:00Z">, p#countdown-timer role="timer" chứa 4 span
+  có data-unit="days|hours|minutes|seconds" và p#countdown-done hidden;
+  section#register với form#register-form (data-state="idle") gồm name, email,
+  textarea message (maxlength 300), mỗi trường có label, hint, error,
+  aria-describedby; nút submit #submit-btn; nút #retry-btn hidden;
+  p#form-status role="status"; footer. Không dùng div. Một h1, không nhảy cấp
+  heading.
+  4. Countdown contract: js/countdown.js export function getRemaining(targetMs,
+  nowMs) trả về { totalMs, days, hours, minutes, seconds } (hàm thuần, không
+  âm); export function startCountdown({ targetIso, onTick, onDone }) trả về
+  stop(). Mốc thời gian là chuỗi ISO 8601 UTC được đọc từ thuộc tính datetime.
+  Mỗi tick tính lại từ Date.now() (KHÔNG đếm ngược bằng biến giảm dần) và lên
+  lịch tick kế tiếp bằng setTimeout tự hiệu chỉnh về đầu giây tiếp theo (KHÔNG
+  setInterval). stop() phải clearTimeout. Đồng bộ lại khi tab hiện lại
+  (visibilitychange).
+  5. State machine contract: bảng trạng thái và sự kiện: idle --SUBMIT-->
+  submitting; submitting --RESOLVE--> success; submitting --REJECT--> error;
+  error --RETRY--> idle; success --RESET--> idle. Sự kiện không hợp lệ bị bỏ
+  qua và send() trả về false. Trạng thái được phản ánh bằng thuộc tính
+  data-state trên form#register-form để CSS style được. js/form-state.js export
+  STATES và createFormMachine({ onChange }) với send(event) và getState().
+  6. Sanitization contract: js/sanitize.js export sanitizeText(value,
+  maxLength) (chuẩn hóa Unicode NFC, bỏ ký tự điều khiển, gộp khoảng trắng,
+  trim, cắt theo maxLength) và escapeHtml(value). Mọi nội dung người dùng hiển
+  thị ra giao diện CHỈ qua textContent.
+  7. Mock API contract: js/mock-api.js export function mockSubmit(payload) trả
+  về Promise, mất ~1200ms, reject khi email kết thúc bằng "@fail.test", ngược
+  lại resolve({ id }). In đúng một dòng console.info cho mỗi request (để tôi
+  đếm số request khi test double-submit).
+  8. Verification gate cho từng task và chiến lược tìm lỗi AI (review prompt
+  sau mỗi slice).
+  9. Rules: không one-shot prompt; mỗi slice một commit nguyên tử; tối thiểu 5
+  commit.
+
+  Sau khi viết xong:
+  git add .gitignore CLAUDE.md project-rules.md TASK_DECOMPOSITION.md
+  git commit -m "docs(spec): define component contracts & WBS table"
+
+  Không push. Báo cáo bằng tiếng Việt.
+
+● Write(TASK_DECOMPOSITION.md)
+  ⎿  Wrote 164 lines to TASK_DECOMPOSITION.md
+       1 # TASK_DECOMPOSITION: Resilient Event Hub & AI Failure Audit
+       3 ## 1. Overview
+       4
+         o event)"**. The project is built with vanilla HTML5, modern CSS
+         ages, bundlers or CDNs (see `project-rules.md`).
+       6
+         ced with `min-width` media queries.
+       8 - **Visual style, "cyber blueprint":** dark navy background, a f
+         pace font stack.
+      10   1. A drift-free countdown to the event start.
+     … +267 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Đã tạo TASK_DECOMPOSITION.md (bằng tiếng Anh) và commit. Tôi không push.
+
+  Commit: caa921f — docs(spec): define component contracts & WBS table. Đây là
+  commit đầu tiên của repo.
+
+  File trong commit: .gitignore, CLAUDE.md, project-rules.md,
+  TASK_DECOMPOSITION.md. Tôi stage từng file bằng đường dẫn rõ ràng. Sau commit,
+  working tree sạch.
+
+  Nội dung file gồm 9 phần:
+  1. Overview: Future Web Summit 2027, vanilla HTML/CSS/JS, ES modules, 375px
+     mobile-first, phong cách cyber blueprint.
+  2. Bảng WBS gồm T-01, S1a, S1b, T-02, T-03, T-04, Slice 1–3 và Audit. Mỗi dòng
+     có file, acceptance criteria và commit message đúng như bạn yêu cầu. Tổng
+     cộng 9 commit.
+  3. HTML contract: không dùng div, một h1, các id và thuộc tính theo yêu cầu.
+  4. Countdown contract: getRemaining là hàm thuần, startCountdown trả về
+     stop(). Mỗi tick tính lại từ Date.now(), dùng setTimeout tự hiệu chỉnh về
+     đầu giây, không dùng setInterval, và đồng bộ lại khi visibilitychange.
+  5. State machine contract: bảng 5 chuyển trạng thái, sự kiện không hợp lệ bị
+     bỏ qua và send() trả về false, data-state phản ánh trạng thái trên form.
+  6. Sanitization contract: sanitizeText và escapeHtml, mọi nội dung người dùng
+     hiển thị chỉ qua textContent.
+  7. Mock API contract: mất khoảng 1200ms, reject khi email kết thúc bằng
+     @fail.test, in đúng một console.info mỗi request.
+  8. Verification gate cho từng task và chiến lược tìm lỗi AI (review prompt sau
+     mỗi slice).
+  9. Rules: không one-shot prompt, mỗi slice một commit nguyên tử, tối thiểu 5
+     commit.
+
+  Chi tiết tôi tự thêm, bạn kiểm tra giúp:
+  - Tôi chọn tên 4 file CSS giữ chỗ cho S1a: reset.css, tokens.css, layout.css,
+    components.css. Tôi chọn tên 5 file JS giữ chỗ cho S1b: main.js,
+    countdown.js, form-state.js, mock-api.js, sanitize.js. Đề bài không nêu danh
+    sách này.
+  - Tôi đã thêm hai quy ước ngoài đề bài. onChange nhận (nextState,
+    previousState). console.info của mockSubmit là lệnh console duy nhất được
+    phép trong dự án.
+
+  Git cảnh báo LF sẽ đổi thành CRLF khi checkout trên Windows. Cảnh báo này vô
+  hại với commit này.
+
+  Tôi chưa bắt đầu task tiếp theo (S1a).
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md. Chỉ làm S1a: tạo 4 file CSS
+  giữ chỗ. Không viết HTML, không tạo file JS.
+
+  Phạm vi file được tạo (mỗi file đúng 1 dòng comment "stub: filled in
+  <task>"): css/reset.css, css/tokens.css (T-03), css/layout.css,
+  css/components.css (T-04). Mục đích: HTML tham chiếu sẵn mọi file, tránh 404,
+  và các commit sau chỉ chạm một loại file.
+
+  Commit chỉ 4 file:
+  git add css/reset.css css/tokens.css css/layout.css css/components.css
+  git commit -m "chore(css): add empty stylesheet placeholders"
+
+  Không push, không amend.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Đã xong S1a. Commit 5a99480 — chore(css): add empty stylesheet placeholders.
+  Tôi không push và không amend.
+
+  File đã tạo: mỗi file có đúng một dòng comment.
+  - css/reset.css: /* stub: filled in T-03 */
+  - css/tokens.css: /* stub: filled in T-03 */
+  - css/layout.css: /* stub: filled in T-04 */
+  - css/components.css: /* stub: filled in T-04 */
+
+  Kiểm tra: commit chỉ chứa đúng 4 file này (4 dòng thêm) và working tree sạch.
+  Tôi không tạo HTML hay JS.
+
+  Điểm lệch so với spec: bảng WBS trong TASK_DECOMPOSITION.md ghi S1a là "Files
+  exist and are empty". Giờ mỗi file có một dòng comment theo yêu cầu của bạn.
+  Tôi chưa sửa spec vì nằm ngoài phạm vi task này. Bạn muốn sửa dòng đó thì báo
+  tôi.
+
+  Git vẫn cảnh báo LF sang CRLF, vô hại. Tôi chưa bắt đầu S1b.
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md. Chỉ làm S1b: tạo 5 file JS giữ
+  chỗ. Không viết HTML, không sửa CSS.
+
+  Phạm vi file được tạo (mỗi file đúng 1 dòng comment "stub: filled in
+  <task>"): js/countdown.js, js/main.js (Slice 1), js/form-state.js,
+  js/mock-api.js (Slice 2), js/sanitize.js (Slice 3).
+
+  Commit chỉ 5 file:
+  git add js/countdown.js js/main.js js/form-state.js js/mock-api.js
+  js/sanitize.js
+  git commit -m "chore(js): add empty module placeholders"
+
+  Không push, không amend.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Đã xong S1b. Commit 6b9e973 — chore(js): add empty module placeholders. Tôi
+  không push và không amend.
+
+  File đã tạo: mỗi file có đúng một dòng comment // stub: filled in <task>.
+  - js/countdown.js và js/main.js: Slice 1
+  - js/form-state.js và js/mock-api.js: Slice 2
+  - js/sanitize.js: Slice 3
+
+  Kiểm tra: commit chỉ chứa đúng 5 file này (5 dòng thêm) và working tree sạch.
+  Tôi không tạo HTML và không sửa CSS.
+
+  Git vẫn cảnh báo LF sang CRLF, vô hại. Dòng "Files exist and are empty" của
+  S1b trong bảng WBS lệch nhẹ so với thực tế, giống S1a. Tôi chưa bắt đầu T-02.
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md (mục T-02 và HTML contract).
+  Chỉ làm T-02: HTML. Không viết CSS hay JS thật.
+
+  Phạm vi file được sửa: chỉ index.html (tạo mới). Các file CSS và JS giữ chỗ
+  đã tồn tại từ hai commit S1, đừng sửa chúng.
+
+  Yêu cầu index.html (tiếng Anh):
+  - DOCTYPE, html lang="en", meta charset, viewport, title "Future Web Summit
+  2027 (demo event)", meta description, <link rel="icon" href="data:,">.
+  - Thẻ meta Content-Security-Policy ngay sau meta charset: default-src 'none';
+  script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src
+  'self'; base-uri 'none'; form-action 'none'.
+  - Link CSS: reset, tokens, layout, components. <script type="module"
+  src="js/main.js"></script>.
+  - Cấu trúc đúng contract: skip-link; header (h1 "Future Web Summit 2027",
+  dòng phụ ghi rõ đây là sự kiện demo và có <time> hiển thị giờ sự kiện);
+  main#main-content tabindex="-1" gồm section#countdown (h2 "Countdown", <time
+  id="event-time" datetime="2027-01-15T02:00:00Z">January 15, 2027, 02:00
+  UTC</time>, p#countdown-timer role="timer" với 4 span data-unit
+  days/hours/minutes/seconds (mỗi cái kèm nhãn Days/Hours/Minutes/Seconds trong
+  <span class="unit-label">), p#countdown-done hidden với nội dung "The event
+  has started!") và section#register (h2 "Register", form#register-form
+  data-state="idle" với trường name, email, message theo contract: label, hint,
+  error, aria-describedby; nút #submit-btn "Register now"; nút #retry-btn
+  hidden "Try again"; p#form-status role="status").
+  - Footer có &copy; 2026 và nhắc đây là trang demo.
+  - Không có inline handler/style/script; không có div; đúng 1 h1. Mọi id phải
+  duy nhất trong trang (id="countdown" chỉ dành cho section, bộ đếm là
+  p#countdown-timer).
+
+  Tự kiểm tra: Select-String -Path index.html -Pattern
+  '<div|\son[a-z]+\s*=|\sstyle\s*=' phải rỗng; và không có id nào xuất hiện hai
+  lần.
+
+  Commit chỉ index.html:
+  git add index.html
+  git commit -m "feat(html): landing page structure"
+
+  Không push, không amend.
+
+● Write(index.html)
+  ⎿  Wrote 75 lines to index.html
+       1 <!DOCTYPE html>
+       3 <head>
+       4   <meta charset="UTF-8">
+         c 'none'; script-src 'self'; style-src 'self'; img-src 'self' da
+         ta:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+         le=1">
+       7   <title>Future Web Summit 2027 (demo event)</title>
+         Summit 2027, a demo event: live countdown and a resilient regist
+         ration form.">
+      10   <link rel="stylesheet" href="css/reset.css">
+     … +83 lines (ctrl+o to expand)
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Đã xong T-02. Commit bd139a1 — feat(html): landing page structure. Tôi không
+  push và không amend. Commit chỉ chứa index.html (75 dòng) và working tree
+  sạch.
+
+  Đã kiểm tra:
+  - Select-String với mẫu <div|\son[a-z]+\s*=|\sstyle\s*= trả về rỗng.
+  - Không có id nào xuất hiện hai lần.
+  - Chỉ có đúng 1 thẻ <h1>.
+  - Tôi chưa chạy W3C validator và chưa mở trang qua Live Server
+    (http://localhost:5500), nên chưa xác nhận trình duyệt tải trang không lỗi.
+
+  Các điểm tôi tự quyết, bạn xem lại:
+  - Hint và error dùng <span> bên trong <p> bọc từng trường, vì không được dùng
+    div. Bạn có thể đổi sang <p> riêng nếu muốn.
+  - <time> trong header không có id và có cùng datetime với #event-time, để id
+    duy nhất.
+  - Form có novalidate (JS sẽ tự kiểm tra). #retry-btn và #form-status nằm sau
+    form, trong section#register, nên CSS chọn được bằng
+    form[data-state="error"] ~ #retry-btn.
+  - Hint của email nhắc dùng đuôi @fail.test để mô phỏng lỗi. Đó là chữ hiển thị
+    cho người dùng; bạn có thể bỏ khi nộp bài.
+  - Tôi thêm mô tả <title>, meta description, nhãn aria-labelledby cho hai
+    section, và autocomplete/required cho input. Các thuộc tính này không có
+    trong contract.
+
+  Tôi chưa bắt đầu T-03.
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md (mục T-03). Chỉ làm T-03. Không
+  sửa HTML, không viết layout/component, không viết JS.
+
+  Phạm vi file được sửa: css/reset.css và css/tokens.css (hiện là stub, ghi
+  đè).
+
+  reset.css: box-sizing border-box, margin/padding 0, html color-scheme dark,
+  body font-family theo token + line-height 1.6 + min-height 100vh,
+  button/input/textarea font inherit, [hidden] { display: none !important },
+  .visually-hidden nếu HTML dùng, tắt animation khi prefers-reduced-motion.
+
+  tokens.css: một theme tối "cyber blueprint": --bg, --bg-elevated, --surface,
+  --text, --text-muted, --border, --accent, --accent-2, --on-accent,
+  --focus-ring, --glow, --grid-line, --danger, --success, --warning;
+  --font-sans, --font-mono, thang cỡ chữ, --space-1..--space-8, --radius-,
+  --transition-. Toàn bộ màu CHỈ khai báo ở đây. Tương phản chữ >= 4.5:1;
+  viền/focus >= 3:1. Tính tỉ lệ bằng lệnh chạy một lần (không lưu file) và báo
+  bảng bằng tiếng Việt.
+
+  Tự kiểm tra: Select-String -Path css\reset.css -Pattern '#[0-9a-fA-F]{3,8}'
+  phải rỗng.
+
+  Commit:
+  git add css/reset.css css/tokens.css
+  git commit -m "feat(css): design tokens & box-sizing reset"
+
+  Không push.
+
+  Read 2 files (ctrl+o to expand)
+
+● Write(css\tokens.css)
+  ⎿  Added 67 lines, removed 1 line
+       1 -/* stub: filled in T-03 */                                     
+       1 +/* Design tokens: "cyber blueprint" dark theme. All colors live
+         + here only. */                                                 
+       2 +:root {                                                        
+       3 +  /* Surfaces */                                               
+       4 +  --bg: #0a1128;                                               
+       5 +  --bg-elevated: #0f1a3a;                                      
+       6 +  --surface: #14224a;                                          
+       7 +                                                               
+       8 +  /* Text */                                                   
+       9 +  --text: #e6f1ff;                                             
+      10 +  --text-muted: #a9bbdf;                                       
+      11 +  --on-accent: #04101f;                                        
+      12 +                                                               
+      13 +  /* Lines and focus */                                        
+      14 +  --border: #5a72ad;                                           
+      15 +  --focus-ring: #22d3ee;                                       
+      16 +  --grid-line: rgba(90, 114, 173, 0.18);                       
+      17 +                                                               
+      18 +  /* Accents */                                                
+      19 +  --accent: #22d3ee;                                           
+      20 +  --accent-2: #a78bfa;                                         
+      21 +  --glow: 0 0 1rem rgba(34, 211, 238, 0.45);                   
+      22 +  --glow-2: 0 0 1rem rgba(167, 139, 250, 0.45);                
+      23 +                                                               
+      24 +  /* Feedback */                                               
+      25 +  --danger: #ff8f8f;                                           
+      26 +  --success: #4ade80;                                          
+      27 +  --warning: #fbbf24;                                          
+      28 +                                                               
+      29 +  /* Typography */                                             
+      30 +  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "H
+         +elvetica Neue", Arial, sans-serif;                             
+      31 +  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas,
+         + "Liberation Mono", monospace;                                 
+      32 +  --font-size-xs: 0.75rem;                                     
+      33 +  --font-size-sm: 0.875rem;                                    
+      34 +  --font-size-base: 1rem;                                      
+      35 +  --font-size-md: 1.125rem;                                    
+      36 +  --font-size-lg: 1.375rem;                                    
+      37 +  --font-size-xl: 1.75rem;                                     
+      38 +  --font-size-2xl: 2.25rem;                                    
+      39 +  --font-size-3xl: clamp(2rem, 9vw, 3.5rem);                   
+      40 +  --line-height-base: 1.6;                                     
+      41 +  --line-height-tight: 1.2;                                    
+      42 +                                                               
+      43 +  /* Spacing */                                                
+      44 +  --space-1: 0.25rem;                                          
+      45 +  --space-2: 0.5rem;                                           
+      46 +  --space-3: 0.75rem;                                          
+      47 +  --space-4: 1rem;                                             
+      48 +  --space-5: 1.5rem;                                           
+      49 +  --space-6: 2rem;                                             
+      50 +  --space-7: 3rem;                                             
+      51 +  --space-8: 4rem;                                             
+      52 +                                                               
+      53 +  /* Radii */                                                  
+      54 +  --radius-sm: 0.25rem;                                        
+      55 +  --radius-md: 0.5rem;                                         
+      56 +  --radius-lg: 1rem;                                           
+      57 +  --radius-pill: 999px;                                        
+      58 +                                                               
+      59 +  /* Motion */                                                 
+      60 +  --transition-fast: 120ms ease-out;                           
+      61 +  --transition-base: 200ms ease-out;                           
+      62 +  --transition-slow: 400ms ease-out;                           
+      63 +                                                               
+      64 +  /* Sizing */                                                 
+      65 +  --border-width: 1px;                                         
+      66 +  --focus-width: 3px;                                          
+      67 +}                                                              
+
+● Write(css\reset.css)
+  ⎿  Added 41 lines, removed 1 line
+       1 -/* stub: filled in T-03 */                                     
+       1 +*,                                                             
+       2 +*::before,                                                     
+       3 +*::after {                                                     
+       4 +  box-sizing: border-box;                                      
+       5 +  margin: 0;                                                   
+       6 +  padding: 0;                                                  
+       7 +}                                                              
+       8 +                                                               
+       9 +html {                                                         
+      10 +  color-scheme: dark;                                          
+      11 +}                                                              
+      12 +                                                               
+      13 +body {                                                         
+      14 +  min-height: 100vh;                                           
+      15 +  font-family: var(--font-mono);                               
+      16 +  line-height: var(--line-height-base);                        
+      17 +  color: var(--text);                                          
+      18 +  background-color: var(--bg);                                 
+      19 +}                                                              
+      20 +                                                               
+      21 +button,                                                        
+      22 +input,                                                         
+      23 +textarea {                                                     
+      24 +  font: inherit;                                               
+      25 +  color: inherit;                                              
+      26 +}                                                              
+      27 +                                                               
+      28 +[hidden] {                                                     
+      29 +  display: none !important;                                    
+      30 +}                                                              
+      31 +                                                               
+      32 +@media (prefers-reduced-motion: reduce) {                      
+      33 +  *,                                                           
+      34 +  *::before,                                                   
+      35 +  *::after {                                                   
+      36 +    animation-duration: 0.01ms !important;                     
+      37 +    animation-iteration-count: 1 !important;                   
+      38 +    transition-duration: 0.01ms !important;                    
+      39 +    scroll-behavior: auto !important;                          
+      40 +  }                                                            
+      41 +}                                                              
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● R is an alias for Invoke-History in PowerShell, so the function name collided.
+  I'll rename it and rerun.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Đã xong T-03. Commit 8816a01 — feat(css): design tokens & box-sizing reset.
+  Tôi không push. Commit chỉ chứa css/reset.css và css/tokens.css, working tree
+  sạch.
+
+  Đã kiểm tra: Select-String tìm mã hex trong reset.css trả về rỗng. Tôi chưa mở
+  trang trong trình duyệt để xem giao diện.
+
+  Tỉ lệ tương phản (tính bằng lệnh chạy một lần, không lưu file; công thức WCAG
+  2.x):
+
+  ┌──────────────────────────────────┬────────────────────┬────────┬────────┐
+  │             Cặp màu              │       Tỉ lệ        │ Ngưỡng │  Kết   │
+  │                                  │                    │        │  quả   │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ text / bg, bg-elevated, surface  │ 16.37 / 14.96 /    │ 4.5    │ Đạt    │
+  │                                  │ 13.55              │        │        │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ text-muted / bg, bg-elevated,    │ 9.66 / 8.84 / 8.00 │ 4.5    │ Đạt    │
+  │ surface                          │                    │        │        │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ accent (cyan) / bg, surface      │ 10.34 / 8.56       │ 4.5    │ Đạt    │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ accent-2 (violet) / bg, surface  │ 6.87 / 5.68        │ 4.5    │ Đạt    │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ on-accent / accent, accent-2     │ 10.57 / 7.02       │ 4.5    │ Đạt    │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ danger / bg, surface             │ 8.52 / 7.06        │ 4.5    │ Đạt    │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ success / bg, surface            │ 10.72 / 8.88       │ 4.5    │ Đạt    │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ warning / bg, surface            │ 11.19 / 9.27       │ 4.5    │ Đạt    │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ border / bg, bg-elevated,        │ 3.96 / 3.62 / 3.27 │ 3      │ Đạt    │
+  │ surface                          │                    │        │        │
+  ├──────────────────────────────────┼────────────────────┼────────┼────────┤
+  │ focus-ring / bg, bg-elevated,    │ 10.34 / 9.45 /     │ 3      │ Đạt    │
+  │ surface                          │ 8.56               │        │        │
+  └──────────────────────────────────┴────────────────────┴────────┴────────┘
+
+  Tất cả 24 cặp đều đạt.
+
+  Chi tiết cần biết:
+  - --grid-line, --glow và --glow-2 dùng rgba() có độ trong suốt nên không đưa
+    vào bảng. Chúng là nền trang trí và đổ bóng, không phải chữ hay viền chức
+    năng.
+  - --glow và --glow-2 là giá trị box-shadow đầy đủ, không chỉ là màu.
+  - Tôi thêm --border-width, --focus-width và --line-height-tight. Đề bài không
+    nêu, tôi thêm để T-04 không phải hard-code.
+  - body dùng --font-mono làm font chính, theo phong cách đã định. --font-sans
+    vẫn có sẵn.
+  - Tôi không thêm .visually-hidden vì HTML không dùng class này.
+
+  Lúc chạy lần đầu, hàm tính bị trùng tên với alias R của PowerShell nên báo
+  lỗi. Tôi đổi tên hàm và chạy lại; bảng trên là kết quả lần chạy lại.
+
+  Tôi chưa bắt đầu T-04.
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\hw3-event-hub\css\tokens.css in the
+  IDE. This may or may not be related to the current task.</ide_opened_file>
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md (mục T-04). Chỉ làm T-04. Không
+  sửa HTML, không viết JS.
+
+  Phạm vi file được sửa: css/layout.css và css/components.css (hiện là stub,
+  ghi đè). Chỉ dùng token qua var(--...), không có mã màu cứng (kể cả trong
+  box-shadow).
+
+  layout.css (mobile-first, thiết kế 375px trước):
+  - body nền --bg kèm lưới mờ bằng linear-gradient với token --grid-line.
+  - skip-link ẩn ngoài màn hình, hiện khi :focus.
+  - header, main, footer: padding-inline theo token, max-inline-size ~60rem,
+  margin-inline auto, khoảng cách dọc theo token.
+  - #countdown-timer (p có role="timer"): CSS Grid 4 cột đều nhau (2x2 ở dưới
+  30rem nếu cần) với gap; mỗi ô gồm số lớn dùng font-variant-numeric:
+  tabular-nums để số không "nhảy" độ rộng, nhãn nhỏ bên dưới.
+  - #register: form là grid 1 cột, khoảng cách theo token; từ 48rem name +
+  email cùng hàng.
+  - Không cuộn ngang ở 375px.
+
+  components.css:
+  - Số đếm ngược kiểu bảng điều khiển (viền, nền --surface, số cỡ lớn, glow
+  nhẹ).
+  - Nút (#submit-btn, #retry-btn): min 44x44px, nền --accent, chữ --on-accent,
+  :hover/:active, :disabled mờ rõ ràng và cursor not-allowed.
+  - Trường form: label, input, textarea, min-height 44px, viền --border,
+  :focus-visible outline 3px --focus-ring; [aria-invalid="true"] viền --danger;
+  .field-hint --text-muted; .field-error --danger.
+  - Trạng thái theo form[data-state]:
+    - idle: bình thường.
+    - submitting: các control mờ đi, nút hiển thị spinner bằng pure CSS
+  (keyframes, tắt khi prefers-reduced-motion) và con trỏ progress.
+    - success: p#form-status màu --success, viền thành công.
+    - error: p#form-status màu --danger, viền lỗi.
+  - #countdown-done nổi bật khi hiển thị.
+  - :focus-visible toàn cục cho link, button, input, textarea.
+
+  Tự kiểm tra: Select-String -Path css\layout.css,css\components.css -Pattern
+  '#[0-9a-fA-F]{3,8}' phải rỗng.
+
+  Commit chỉ 2 file:
+  git add css/layout.css css/components.css
+  git commit -m "feat(css): layout, components & form state styles"
+
+  Không push.
+
+  Read 2 files (ctrl+o to expand)
+
+● Write(css\layout.css)
+  ⎿  Added 105 lines, removed 1 line
+        1 -/* stub: filled in T-04 */                                    
+        1 +body {                                                        
+        2 +  background-image:                                           
+        3 +    linear-gradient(var(--grid-line) 1px, transparent 1px),   
+        4 +    linear-gradient(90deg, var(--grid-line) 1px, transparent 1
+          +px);                                                          
+        5 +  background-size: var(--space-6) var(--space-6);             
+        6 +  overflow-x: hidden;                                         
+        7 +}                                                             
+        8 +                                                              
+        9 +.skip-link {                                                  
+       10 +  position: absolute;                                         
+       11 +  inset-block-start: var(--space-2);                          
+       12 +  inset-inline-start: var(--space-2);                         
+       13 +  z-index: 10;                                                
+       14 +  padding: var(--space-2) var(--space-4);                     
+       15 +  background-color: var(--accent);                            
+       16 +  color: var(--on-accent);                                    
+       17 +  border-radius: var(--radius-md);                            
+       18 +  transform: translateY(-200%);                               
+       19 +}                                                             
+       20 +                                                              
+       21 +.skip-link:focus {                                            
+       22 +  transform: translateY(0);                                   
+       23 +}                                                             
+       24 +                                                              
+       25 +header,                                                       
+       26 +main,                                                         
+       27 +footer {                                                      
+       28 +  padding-inline: var(--space-4);                             
+       29 +  max-inline-size: 60rem;                                     
+       30 +  margin-inline: auto;                                        
+       31 +}                                                             
+       32 +                                                              
+       33 +header {                                                      
+       34 +  display: grid;                                              
+       35 +  gap: var(--space-3);                                        
+       36 +  padding-block: var(--space-7) var(--space-5);               
+       37 +}                                                             
+       38 +                                                              
+       39 +main {                                                        
+       40 +  display: grid;                                              
+       41 +  gap: var(--space-6);                                        
+       42 +  padding-block: var(--space-4) var(--space-7);               
+       43 +}                                                             
+       44 +                                                              
+       45 +footer {                                                      
+       46 +  padding-block: var(--space-5) var(--space-6);               
+       47 +}                                                             
+       48 +                                                              
+       49 +#countdown,                                                   
+       50 +#register {                                                   
+       51 +  display: grid;                                              
+       52 +  gap: var(--space-4);                                        
+       53 +  align-content: start;                                       
+       54 +}                                                             
+       55 +                                                              
+       56 +#countdown-timer {                                            
+       57 +  display: grid;                                              
+       58 +  grid-template-columns: repeat(4, minmax(0, 1fr));           
+       59 +  grid-template-rows: auto auto;                              
+       60 +  grid-auto-flow: column;                                     
+       61 +  column-gap: var(--space-2);                                 
+       62 +}                                                             
+       63 +                                                              
+       64 +#countdown-timer [data-unit] {                                
+       65 +  font-variant-numeric: tabular-nums;                         
+       66 +  text-align: center;                                         
+       67 +}                                                             
+       68 +                                                              
+       69 +#countdown-timer .unit-label {                                
+       70 +  text-align: center;                                         
+       71 +}                                                             
+       72 +                                                              
+       73 +#register-form {                                              
+       74 +  display: grid;                                              
+       75 +  gap: var(--space-4);                                        
+       76 +}                                                             
+       77 +                                                              
+       78 +#register-form > p {                                          
+       79 +  display: grid;                                              
+       80 +  gap: var(--space-2);                                        
+       81 +}                                                             
+       82 +                                                              
+       83 +#register-form > button,                                      
+       84 +#retry-btn {                                                  
+       85 +  justify-self: start;                                        
+       86 +}                                                             
+       87 +                                                              
+       88 +@media (min-width: 48rem) {                                   
+       89 +  header {                                                    
+       90 +    padding-block-start: var(--space-8);                      
+       91 +  }                                                           
+       92 +                                                              
+       93 +  #countdown-timer {                                          
+       94 +    column-gap: var(--space-4);                               
+       95 +  }                                                           
+       96 +                                                              
+       97 +  #register-form {                                            
+       98 +    grid-template-columns: repeat(2, minmax(0, 1fr));         
+       99 +  }                                                           
+      100 +                                                              
+      101 +  #register-form > p:nth-of-type(3),                          
+      102 +  #register-form > button {                                   
+      103 +    grid-column: 1 / -1;                                      
+      104 +  }                                                           
+      105 +}                                                             
+
+● Write(css\components.css)
+  ⎿  Added 224 lines, removed 1 line
+        1 -/* stub: filled in T-04 */                                    
+        1 +:focus-visible {                                              
+        2 +  outline: var(--focus-width) solid var(--focus-ring);        
+        3 +  outline-offset: 2px;                                        
+        4 +}                                                             
+        5 +                                                              
+        6 +h1 {                                                          
+        7 +  font-size: var(--font-size-3xl);                            
+        8 +  line-height: var(--line-height-tight);                      
+        9 +  color: var(--accent);                                       
+       10 +  text-shadow: var(--glow);                                   
+       11 +}                                                             
+       12 +                                                              
+       13 +h2 {                                                          
+       14 +  font-size: var(--font-size-lg);                             
+       15 +  line-height: var(--line-height-tight);                      
+       16 +  color: var(--accent-2);                                     
+       17 +}                                                             
+       18 +                                                              
+       19 +header p,                                                     
+       20 +footer p {                                                    
+       21 +  color: var(--text-muted);                                   
+       22 +}                                                             
+       23 +                                                              
+       24 +time {                                                        
+       25 +  color: var(--text);                                         
+       26 +}                                                             
+       27 +                                                              
+       28 +#countdown,                                                   
+       29 +#register {                                                   
+       30 +  padding: var(--space-5) var(--space-4);                     
+       31 +  background-color: var(--bg-elevated);                       
+       32 +  border: var(--border-width) solid var(--border);            
+       33 +  border-radius: var(--radius-lg);                            
+       34 +}                                                             
+       35 +                                                              
+       36 +/* Countdown readout */                                       
+       37 +#countdown-timer [data-unit] {                                
+       38 +  padding: var(--space-3) var(--space-1) var(--space-1);      
+       39 +  background-color: var(--surface);                           
+       40 +  border: var(--border-width) solid var(--border);            
+       41 +  border-block-end: 0;                                        
+       42 +  border-start-start-radius: var(--radius-md);                
+       43 +  border-start-end-radius: var(--radius-md);                  
+       44 +  font-family: var(--font-mono);                              
+       45 +  font-size: var(--font-size-xl);                             
+       46 +  font-weight: 700;                                           
+       47 +  line-height: var(--line-height-tight);                      
+       48 +  color: var(--accent);                                       
+       49 +  text-shadow: var(--glow);                                   
+       50 +  box-shadow: var(--glow);                                    
+       51 +}                                                             
+       52 +                                                              
+       53 +#countdown-timer .unit-label {                                
+       54 +  padding: var(--space-1) var(--space-1) var(--space-3);      
+       55 +  background-color: var(--surface);                           
+       56 +  border: var(--border-width) solid var(--border);            
+       57 +  border-block-start: 0;                                      
+       58 +  border-end-start-radius: var(--radius-md);                  
+       59 +  border-end-end-radius: var(--radius-md);                    
+       60 +  font-size: var(--font-size-xs);                             
+       61 +  text-transform: uppercase;                                  
+       62 +  letter-spacing: 0.08em;                                     
+       63 +  color: var(--text-muted);                                   
+       64 +}                                                             
+       65 +                                                              
+       66 +#countdown-done:not([hidden]) {                               
+       67 +  padding: var(--space-4);                                    
+       68 +  background-color: var(--surface);                           
+       69 +  border: var(--border-width) solid var(--accent-2);          
+       70 +  border-radius: var(--radius-md);                            
+       71 +  box-shadow: var(--glow-2);                                  
+       72 +  font-size: var(--font-size-md);                             
+       73 +  font-weight: 700;                                           
+       74 +  color: var(--accent-2);                                     
+       75 +  text-align: center;                                         
+       76 +}                                                             
+       77 +                                                              
+       78 +/* Form fields */                                             
+       79 +#register-form label {                                        
+       80 +  font-weight: 600;                                           
+       81 +  color: var(--text);                                         
+       82 +}                                                             
+       83 +                                                              
+       84 +#register-form input,                                         
+       85 +#register-form textarea {                                     
+       86 +  inline-size: 100%;                                          
+       87 +  min-block-size: 2.75rem;                                    
+       88 +  padding: var(--space-2) var(--space-3);                     
+       89 +  background-color: var(--bg);                                
+       90 +  border: var(--border-width) solid var(--border);            
+       91 +  border-radius: var(--radius-md);                            
+       92 +  color: var(--text);                                         
+       93 +  transition: border-color var(--transition-fast), box-shadow 
+          +var(--transition-fast);                                       
+       94 +}                                                             
+       95 +                                                              
+       96 +#register-form textarea {                                     
+       97 +  resize: vertical;                                           
+       98 +}                                                             
+       99 +                                                              
+      100 +#register-form input:focus-visible,                           
+      101 +#register-form textarea:focus-visible {                       
+      102 +  border-color: var(--focus-ring);                            
+      103 +  box-shadow: var(--glow);                                    
+      104 +}                                                             
+      105 +                                                              
+      106 +#register-form [aria-invalid="true"] {                        
+      107 +  border-color: var(--danger);                                
+      108 +}                                                             
+      109 +                                                              
+      110 +#register-form [id$="-hint"] {                                
+      111 +  font-size: var(--font-size-sm);                             
+      112 +  color: var(--text-muted);                                   
+      113 +}                                                             
+      114 +                                                              
+      115 +#register-form [id$="-error"] {                               
+      116 +  font-size: var(--font-size-sm);                             
+      117 +  font-weight: 600;                                           
+      118 +  color: var(--danger);                                       
+      119 +}                                                             
+      120 +                                                              
+      121 +#register-form [id$="-error"]:empty {                         
+      122 +  display: none;                                              
+      123 +}                                                             
+      124 +                                                              
+      125 +/* Buttons */                                                 
+      126 +#submit-btn,                                                  
+      127 +#retry-btn {                                                  
+      128 +  display: inline-flex;                                       
+      129 +  align-items: center;                                        
+      130 +  justify-content: center;                                    
+      131 +  gap: var(--space-2);                                        
+      132 +  min-inline-size: 2.75rem;                                   
+      133 +  min-block-size: 2.75rem;                                    
+      134 +  padding: var(--space-2) var(--space-5);                     
+      135 +  background-color: var(--accent);                            
+      136 +  border: var(--border-width) solid var(--accent);            
+      137 +  border-radius: var(--radius-md);                            
+      138 +  color: var(--on-accent);                                    
+      139 +  font-weight: 700;                                           
+      140 +  cursor: pointer;                                            
+      141 +  transition: box-shadow var(--transition-fast), transform var
+          +(--transition-fast);                                          
+      142 +}                                                             
+      143 +                                                              
+      144 +#submit-btn:hover,                                            
+      145 +#retry-btn:hover {                                            
+      146 +  box-shadow: var(--glow);                                    
+      147 +}                                                             
+      148 +                                                              
+      149 +#submit-btn:active,                                           
+      150 +#retry-btn:active {                                           
+      151 +  transform: translateY(1px);                                 
+      152 +  box-shadow: none;                                           
+      153 +}                                                             
+      154 +                                                              
+      155 +#submit-btn:disabled,                                         
+      156 +#retry-btn:disabled {                                         
+      157 +  opacity: 0.5;                                               
+      158 +  box-shadow: none;                                           
+      159 +  cursor: not-allowed;                                        
+      160 +}                                                             
+      161 +                                                              
+      162 +/* Form states */                                             
+      163 +#form-status {                                                
+      164 +  font-weight: 600;                                           
+      165 +}                                                             
+      166 +                                                              
+      167 +#form-status:not(:empty) {                                    
+      168 +  padding: var(--space-3) var(--space-4);                     
+      169 +  border: var(--border-width) solid var(--border);            
+      170 +  border-radius: var(--radius-md);                            
+      171 +}                                                             
+      172 +                                                              
+      173 +#register-form[data-state="submitting"] input,                
+      174 +#register-form[data-state="submitting"] textarea,             
+      175 +#register-form[data-state="submitting"] label {               
+      176 +  opacity: 0.6;                                               
+      177 +}                                                             
+      178 +                                                              
+      179 +#register-form[data-state="submitting"] #submit-btn {         
+      180 +  cursor: progress;                                           
+      181 +}                                                             
+      182 +                                                              
+      183 +#register-form[data-state="submitting"] #submit-btn::after {  
+      184 +  content: "";                                                
+      185 +  inline-size: 1em;                                           
+      186 +  block-size: 1em;                                            
+      187 +  border: 2px solid currentColor;                             
+      188 +  border-inline-end-color: transparent;                       
+      189 +  border-radius: 50%;                                         
+      190 +  animation: spin 0.8s linear infinite;                       
+      191 +}                                                             
+      192 +                                                              
+      193 +#register-form[data-state="success"] ~ #form-status {         
+      194 +  color: var(--success);                                      
+      195 +  border-color: var(--success);                               
+      196 +}                                                             
+      197 +                                                              
+      198 +#register-form[data-state="error"] ~ #form-status {           
+      199 +  color: var(--danger);                                       
+      200 +  border-color: var(--danger);                                
+      201 +}                                                             
+      202 +                                                              
+      203 +@keyframes spin {                                             
+      204 +  to {                                                        
+      205 +    transform: rotate(360deg);                                
+      206 +  }                                                           
+      207 +}                                                             
+      208 +                                                              
+      209 +@media (prefers-reduced-motion: reduce) {                     
+      210 +  #register-form[data-state="submitting"] #submit-btn::after {
+      211 +    animation: none;                                          
+      212 +  }                                                           
+      213 +}                                                             
+      214 +                                                              
+      215 +@media (min-width: 48rem) {                                   
+      216 +  #countdown,                                                 
+      217 +  #register {                                                 
+      218 +    padding: var(--space-6);                                  
+      219 +  }                                                           
+      220 +                                                              
+      221 +  #countdown-timer [data-unit] {                              
+      222 +    font-size: var(--font-size-2xl);                          
+      223 +  }                                                           
+      224 +}                                                             
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Đã xong T-04. Commit 4ab4412 — feat(css): layout, components & form state
+  styles. Tôi không push. Commit chỉ chứa css/layout.css và css/components.css,
+  working tree sạch.
+
+  Đã kiểm tra: tìm mã hex, rgb(), rgba(), hsl() trong hai file bằng
+  Select-String cho kết quả rỗng, kể cả trong box-shadow (glow lấy từ token).
+  Chưa kiểm tra: tôi chưa mở trang trong trình duyệt, nên chưa xem giao diện,
+  chưa thử ở 375px (cuộn ngang) và chưa bật reduced motion. Bạn nên làm các bước
+  này qua Live Server trước khi sang Slice 1.
+
+  Cách làm khác một chút so với yêu cầu:
+  - Lớp .field-hint và .field-error: HTML của T-02 không có hai class này. Tôi
+    không sửa HTML, nên chọn bằng [id$="-hint"] và [id$="-error"] trong form.
+    [id$="-error"]:empty được ẩn đi. JS ở Slice 2 cần ghi lỗi bằng textContent
+    và đặt aria-invalid="true" lên input.
+  - Bộ đếm luôn 4 cột: tôi không làm 2×2 dưới 30rem. Ở 375px mỗi ô rộng khoảng
+    80px, vừa đủ cho số 3 chữ số ở cỡ --font-size-xl. Số và nhãn xếp 2 hàng bằng
+    grid-auto-flow: column.
+  - Viền success/error: viền của #form-status chỉ hiện khi có chữ
+    (:not(:empty)), và màu đổi theo form[data-state] qua bộ chọn ~. Vì vậy
+    #form-status phải trống khi ở idle.
+  - Nút khi submitting: spinner nằm ở ::after của #submit-btn, con trỏ là
+    progress. Reduced motion tắt hẳn animation, còn vòng tròn đứng yên. Nếu JS
+    cũng đặt disabled cho nút lúc submitting, con trỏ progress có thể bị
+    not-allowed đè lên tùy thứ tự rule; bạn cần để ý lúc test Slice 2.
+  - Ngoài yêu cầu: thêm style cho h1/h2, card cho hai section, và overflow-x:
+    hidden trên body để chặn cuộn ngang.
+
+  Tôi chưa bắt đầu Slice 1.
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\hw3-event-hub\index.html in the IDE.
+  This may or may not be related to the current task.</ide_opened_file>
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md (mục Slice 1 và Countdown
+  contract). Chỉ làm Slice 1: bộ đếm ngược. Không làm form; không sửa HTML/CSS.
+
+  Phạm vi file được sửa: js/countdown.js và js/main.js (hiện là stub, ghi đè).
+
+  js/countdown.js (ES module, KHÔNG biết gì về DOM):
+  - export function getRemaining(targetMs, nowMs): hàm thuần, trả về { totalMs,
+  days, hours, minutes, seconds } với totalMs không bao giờ âm.
+  - export function startCountdown({ targetIso, onTick, onDone }): parse
+  targetIso bằng Date.parse (chuỗi ISO 8601 kết thúc bằng Z); nếu không hợp lệ
+  (NaN) thì ném lỗi rõ ràng. Mỗi tick tính lại từ Date.now() chứ KHÔNG dùng
+  biến đếm giảm dần. Gọi onTick ngay lập tức một lần, sau đó lên lịch tick tiếp
+  theo bằng setTimeout tự hiệu chỉnh về đầu giây kế tiếp. Không dùng
+  setInterval. Khi totalMs === 0 gọi onDone một lần và dừng. Trả về hàm stop()
+  gọi clearTimeout và gỡ listener. Đồng bộ lại ngay khi tab hiển thị lại
+  (document visibilitychange). Dọn dẹp khi trang bị pagehide.
+
+  js/main.js (chỉ nối dây):
+  - import { startCountdown } từ './countdown.js'.
+  - Đọc targetIso từ
+  document.querySelector('#event-time').getAttribute('datetime').
+  - onTick cập nhật bốn phần tử [data-unit] bằng textContent, số được đệm 2 chữ
+  số (days có thể dài hơn).
+  - onDone: bỏ thuộc tính hidden của #countdown-done và đặt số về 00.
+  - Không innerHTML, không console.log, const/let, không var.
+
+  Tự kiểm tra: Select-String -Path js\*.js -Pattern
+  '\bvar\b|innerHTML|console\.log|setInterval' phải rỗng.
+
+  Commit chỉ 2 file:
+  git add js/countdown.js js/main.js
+  git commit -m "feat(js): drift-free countdown engine"
+
+  Không push. Hướng dẫn tôi cách kiểm thử getRemaining trong Console bằng
+  dynamic import.
+
+  Read 2 files (ctrl+o to expand)
+● Write(js\countdown.js)
+  ⎿  Added 60 lines, removed 1 line
+       1 -// stub: filled in Slice 1                                     
+       1 +const MS_PER_SECOND = 1000;                                    
+       2 +const SECONDS_PER_MINUTE = 60;                                 
+       3 +const SECONDS_PER_HOUR = 3600;                                 
+       4 +const SECONDS_PER_DAY = 86400;                                 
+       5 +                                                               
+       6 +export function getRemaining(targetMs, nowMs) {                
+       7 +  const diff = targetMs - nowMs;                               
+       8 +  const totalMs = Number.isFinite(diff) ? Math.max(0, diff) : 0
+         +;                                                              
+       9 +  const totalSeconds = Math.ceil(totalMs / MS_PER_SECOND);     
+      10 +                                                               
+      11 +  return {                                                     
+      12 +    totalMs,                                                   
+      13 +    days: Math.floor(totalSeconds / SECONDS_PER_DAY),          
+      14 +    hours: Math.floor((totalSeconds % SECONDS_PER_DAY) / SECOND
+         +S_PER_HOUR),                                                   
+      15 +    minutes: Math.floor((totalSeconds % SECONDS_PER_HOUR) / SEC
+         +ONDS_PER_MINUTE),                                              
+      16 +    seconds: totalSeconds % SECONDS_PER_MINUTE,                
+      17 +  };                                                           
+      18 +}                                                              
+      19 +                                                               
+      20 +export function startCountdown({ targetIso, onTick, onDone }) {
+      21 +  const targetMs = Date.parse(targetIso);                      
+      22 +  if (Number.isNaN(targetMs)) {                                
+      23 +    throw new Error(`Invalid countdown target: "${targetIso}" i
+         +s not a valid ISO 8601 date.`);                                
+      24 +  }                                                            
+      25 +                                                               
+      26 +  let timerId = null;                                          
+      27 +                                                               
+      28 +  function tick() {                                            
+      29 +    const remaining = getRemaining(targetMs, Date.now());      
+      30 +    onTick(remaining);                                         
+      31 +                                                               
+      32 +    if (remaining.totalMs === 0) {                             
+      33 +      stop();                                                  
+      34 +      onDone();                                                
+      35 +      return;                                                  
+      36 +    }                                                          
+      37 +                                                               
+      38 +    timerId = setTimeout(tick, MS_PER_SECOND - (Date.now() % MS
+         +_PER_SECOND));                                                 
+      39 +  }                                                            
+      40 +                                                               
+      41 +  function handleVisibilityChange() {                          
+      42 +    if (document.visibilityState === 'visible') {              
+      43 +      clearTimeout(timerId);                                   
+      44 +      tick();                                                  
+      45 +    }                                                          
+      46 +  }                                                            
+      47 +                                                               
+      48 +  function stop() {                                            
+      49 +    clearTimeout(timerId);                                     
+      50 +    timerId = null;                                            
+      51 +    document.removeEventListener('visibilitychange', handleVisi
+         +bilityChange);                                                 
+      52 +    window.removeEventListener('pagehide', stop);              
+      53 +  }                                                            
+      54 +                                                               
+      55 +  document.addEventListener('visibilitychange', handleVisibilit
+         +yChange);                                                      
+      56 +  window.addEventListener('pagehide', stop);                   
+      57 +  tick();                                                      
+      58 +                                                               
+      59 +  return stop;                                                 
+      60 +}                                                              
+
+● Write(js\main.js)
+  ⎿  Added 28 lines, removed 1 line
+       1 -// stub: filled in Slice 1                                     
+       1 +import { startCountdown } from './countdown.js';               
+       2 +                                                               
+       3 +const eventTime = document.querySelector('#event-time');       
+       4 +const doneMessage = document.querySelector('#countdown-done'); 
+       5 +const unitNodes = document.querySelectorAll('#countdown-timer [
+         +data-unit]');                                                  
+       6 +                                                               
+       7 +function pad(value) {                                          
+       8 +  return String(value).padStart(2, '0');                       
+       9 +}                                                              
+      10 +                                                               
+      11 +function renderRemaining(remaining) {                          
+      12 +  unitNodes.forEach((node) => {                                
+      13 +    node.textContent = pad(remaining[node.dataset.unit]);      
+      14 +  });                                                          
+      15 +}                                                              
+      16 +                                                               
+      17 +function showDone() {                                          
+      18 +  unitNodes.forEach((node) => {                                
+      19 +    node.textContent = pad(0);                                 
+      20 +  });                                                          
+      21 +  doneMessage.hidden = false;                                  
+      22 +}                                                              
+      23 +                                                               
+      24 +startCountdown({                                               
+      25 +  targetIso: eventTime.getAttribute('datetime'),               
+      26 +  onTick: renderRemaining,                                     
+      27 +  onDone: showDone,                                            
+      28 +});                                                            
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Đã xong Slice 1. Commit 46a664c — feat(js): drift-free countdown engine. Tôi
+  không push. Commit chỉ chứa js/countdown.js và js/main.js, working tree sạch.
+
+  Đã kiểm tra:
+  - Select-String tìm var, innerHTML, console.log, setInterval trong js\*.js cho
+    kết quả rỗng.
+  - node --check báo cú pháp hợp lệ cho cả hai file.
+  - Tôi chạy thử getRemaining bằng Node (lệnh một lần, không lưu file) và kết
+    quả đúng:
+    - getRemaining(90061000, 0) trả về 1 ngày, 1 giờ, 1 phút, 1 giây.
+    - getRemaining(0, 5000) và getRemaining(NaN, 0) đều trả về toàn số 0.
+  - Chưa kiểm tra: tôi chưa chạy startCountdown trong trình duyệt, nên chưa xác
+    nhận hiển thị, tab ẩn/hiện và stop().
+
+  Hai quyết định bạn nên biết:
+  - getRemaining làm tròn lên (Math.ceil) khi đổi sang giây. Ví dụ còn 1500ms
+    thì hiển thị 2 giây. Nhờ vậy màn hình chỉ hiện 00:00:00:00 khi totalMs ===
+    0, đúng lúc onDone chạy. Nếu bạn muốn làm tròn xuống thì đổi một chỗ.
+  - pagehide gọi stop(). Nếu trang được khôi phục từ bfcache (nút Back), bộ đếm
+    sẽ không tự chạy lại. Với trang demo này tôi coi là chấp nhận được.
+
+  Cách kiểm thử trong Console
+
+  Mở trang qua http://localhost:5500, bật DevTools, tab Console. Dòng await
+  import(...) chạy được trực tiếp trong Console.
+
+  const m = await import('/js/countdown.js');
+
+  // 1. Giá trị chính xác: kỳ vọng days 1, hours 1, minutes 1, seconds 1
+  m.getRemaining(90061000, 0);
+
+  // 2. Đã qua mốc: kỳ vọng toàn 0, totalMs không âm
+  m.getRemaining(0, 5000);
+
+  // 3. Làm tròn lên: kỳ vọng seconds 2, totalMs 1500
+  m.getRemaining(1500, 0);
+
+  // 4. Đầu vào hỏng: kỳ vọng toàn 0
+  m.getRemaining(NaN, 0);
+
+  // 5. Hàm thuần: gọi hai lần cùng đối số phải ra cùng kết quả
+  JSON.stringify(m.getRemaining(5000, 0)) ===
+  JSON.stringify(m.getRemaining(5000, 0));
+
+  Để thử startCountdown (mốc cách 4 giây), onDone phải in đúng một lần và các
+  tick phải rơi vào đầu giây:
+
+  const stop = m.startCountdown({
+    targetIso: new Date(Date.now() + 4000).toISOString(),
+    onTick: (r) => console.log('tick', r.seconds, Date.now() % 1000),
+    onDone: () => console.log('done'),
+  });
+
+  Cột cuối của mỗi dòng tick nên gần 0. Thử stop() bằng cách chạy lại với mốc 60
+  giây rồi gọi stop() ngay: sẽ không còn dòng tick nào sau đó. Thử tab ẩn/hiện:
+  chuyển sang tab khác vài giây rồi quay lại, các số trên trang phải nhảy đúng
+  ngay lập tức.
+
+  Tôi chưa bắt đầu Slice 2.

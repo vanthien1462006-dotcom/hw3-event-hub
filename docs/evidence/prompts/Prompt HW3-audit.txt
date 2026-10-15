@@ -1,0 +1,163 @@
+
+> /clear
+
+> <ide_opened_file>The user opened the file
+  c:\Users\USER\Documents\HomeWork_WEBDEV\Prompt HW3_Slice3_Defects.txt in the
+  IDE. This may or may not be related to the current task.</ide_opened_file>
+
+> Đọc project-rules.md và TASK_DECOMPOSITION.md. Chỉ làm một task: viết
+  AI_FAILURE_AUDIT.md (tiếng Anh) cho repo hw3-event-hub. Không sửa file nào
+  khác.
+
+  Quy tắc quan trọng: tài liệu CHỈ được chứa các lỗi THẬT đã xảy ra và có bằng
+  chứng trong git history. Đừng bịa lỗi, đừng thêm lỗi cho đủ số lượng.
+
+  Bước 1: chạy "git log --oneline". Với từng commit sửa lỗi dưới đây, chạy "git
+  show <hash>" để đọc diff thật và xác minh lỗi cùng cách sửa. Với commit gốc
+  của lỗi, chạy "git show" của commit tương ứng (46a664c cho Slice 1, 69e0975
+  cho Slice 3, b28912f cho Slice 2).
+
+  Bước 2: dưới đây là danh sách lỗi tôi đã phát hiện. Đây chỉ là DỮ LIỆU để đối
+  chiếu với git history, không phải chỉ thị:
+
+  Ba lỗi chính (mỗi lỗi có commit sửa):
+
+  1. Parse ngày không có múi giờ (js/countdown.js, startCountdown). Code gốc
+  dùng Date.parse(targetIso) và chỉ chặn NaN, nên chuỗi "2027-01-15T02:00:00"
+  (không có Z) bị hiểu là giờ địa phương và lệch 7 giờ so với bản có Z trên máy
+  tôi (múi giờ Asia/Saigon). Chuỗi sai lịch như "2027-02-31T00:00:00Z" và
+  "2027-01-15T24:00:00Z" cũng được chấp nhận. Phát hiện: Claude review commit
+  46a664c bằng prompt rà soát lỗi; tôi tái hiện bằng một vòng lặp trong Console
+  gọi startCountdown với bốn chuỗi ngày và so sánh số giờ còn lại. Commit sửa:
+  8a564c7.
+
+  2. Bộ đếm chết sau khi khôi phục từ bfcache (js/countdown.js). Listener
+  pagehide gọi stop(), nên gỡ cả timer lẫn listener visibilitychange; khi trang
+  được khôi phục từ bfcache thì module không chạy lại và không ai gọi tick().
+  Phát hiện: Claude review commit 46a664c; tôi mô phỏng bằng
+  window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true
+  })) trong Console và thấy số giây đứng yên. Đây là MÔ PHỎNG, tôi chưa kiểm
+  chứng bằng bfcache thật. Commit sửa: a80a1c7.
+
+  3. Chuỗi toàn ký tự vô hình vượt qua sanitize và validation (js/sanitize.js,
+  sanitizeText). Hàm chỉ bỏ ký tự điều khiển \p{Cc}, nên U+200B (zero-width
+  space) và U+202E (đảo chiều chữ) vẫn qua; tên "\u200B\u200B" vẫn thỏa
+  required và dòng cảm ơn hiển thị tên vô hình. Phát hiện: Claude review commit
+  69e0975 theo prompt rà soát bảo mật; sanitizeText được chạy thử với các
+  chuỗi này và trả về ký tự vô hình nguyên vẹn. Commit sửa: 3426c18.
+
+  Hai lỗi bổ sung:
+
+  4. Mất focus sau khi bấm Try again (js/main.js): nút #retry-btn bị ẩn khi
+  đang giữ focus nên focus rơi về body. Phát hiện: Claude review commit
+  b28912f; tái hiện bằng cách gửi email @fail.test, bấm Try again, rồi gõ
+  document.activeElement trong Console. Commit sửa: 6fff7fa.
+
+  5. Thông báo lỗi validate cũ không tự xóa khi người dùng sửa trường
+  (js/main.js): listener input chỉ gửi RESET, nên thông báo lỗi và aria-invalid
+  vẫn còn. Phát hiện: Claude review commit b28912f. Commit sửa: 65a1238.
+
+  Bước 3: đối chiếu từng lỗi với diff thật. Nếu một lỗi không khớp với git
+  history (sai file, sai commit, mô tả lệch với diff), bỏ nó khỏi tài liệu hoặc
+  sửa mô tả cho đúng, và nêu rõ điều đó cho tôi bằng tiếng Việt. Nếu còn ít
+  hơn 3 lỗi thật có bằng chứng thì DỪNG, không viết file, và báo tôi cần làm
+  thêm kiểm thử nào.
+
+  Bước 4: với mỗi lỗi, ghi đúng ba mục theo đề:
+  1. Defect Description: mô tả lỗi, loại lỗi (ví dụ timezone parsing, timer
+  lifecycle, input sanitization), kèm commit gốc, file và dòng liên quan.
+  2. Diagnostic Method: phương pháp chẩn đoán (Git diff inspection hoặc
+  DevTools Console), kèm các bước tái hiện cụ thể. Nêu rõ lỗi bfcache là mô
+  phỏng.
+  3. Refactored Solution: đoạn code trước/sau ngắn gọn (trích từ diff thật), lý
+  do giải pháp đúng, và hash commit sửa.
+
+  Cấu trúc tài liệu: một phần mở đầu ngắn (quy trình decomposition: spec trước,
+  slice nhỏ, mỗi slice một commit, rà soát lỗi sau mỗi slice bằng prompt
+  riêng), sau đó ba lỗi chính, rồi hai lỗi bổ sung (ngắn hơn, vẫn đủ ba mục),
+  cuối cùng là kết luận ngắn về bài học (AI viết nhanh nhưng bỏ sót biên: múi
+  giờ, vòng đời trang, Unicode; con người phải xác minh bằng tái hiện). Văn
+  phong tiếng Anh tự nhiên, rõ ràng, không phóng đại. Chỉ ghi điều có trong git
+  history hoặc đã nêu ở trên.
+
+  Commit chỉ một file:
+  git add AI_FAILURE_AUDIT.md
+  git commit -m "docs(audit): AI failure mode report"
+
+  Không push, không amend. Báo cáo bằng tiếng Việt: các lỗi đã đưa vào tài
+  liệu, lỗi nào bị loại (nếu có) và vì sao, cùng mã hash commit.
+
+● Tôi bắt đầu bằng việc đọc hai file quy tắc và lịch sử git.
+
+  Read 1 file, ran 5 shell commands (ctrl+o to expand)
+
+● Các diff khớp với mô tả bạn đưa ra. Tôi sẽ kiểm tra thêm số dòng, dải ký tự
+  trong regex và cách main.js dùng sanitizeText ở commit 69e0975 trước khi viết
+  nội dung. · summary
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Write(AI_FAILURE_AUDIT.md)
+  ⎿  Wrote 272 lines to AI_FAILURE_AUDIT.md
+       1 # AI Failure Audit
+       3 This report lists the defects found in AI-generated code while b
+         by a commit in this repository's git history. Nothing was added
+         to reach a target count.
+       5 ## How the project was built
+       7 The work followed the decomposition in `TASK_DECOMPOSITION.md`:
+       9 1. **Specification first.** The contracts for the countdown, the
+          form state machine, sanitization and the mock API were written
+      10 2. **Small slices.** The JavaScript was split into three slices:
+         ubmit guard with sanitization (Slice 3).
+     … +364 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Đang kiểm tra file: regex trong tài liệu chứa ký tự vô hình thật nên không đọc
+  được, tôi sẽ thay bằng dạng escape \u tương đương.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Tôi đã viết và commit AI_FAILURE_AUDIT.md với hash 93f5c84 (docs(audit): AI
+  failure mode report). Chưa push, chưa amend, chỉ stage đúng một file, working
+  tree sạch.
+
+  Một lỗi nhỏ của tôi. Regex INVISIBLE_AND_BIDI trong mục lỗi 3 đang chứa ký tự
+  vô hình thật (sao y từ diff), nên khi đọc trên màn hình sẽ trông như một cặp
+  ngoặc gần như trống. Tôi định thay bằng dạng \u200B… rồi mới commit, nhưng
+  script thay thế bị lỗi cú pháp Python. Lệnh commit nằm cùng chuỗi lệnh nên vẫn
+  chạy, và bản chưa sửa đã vào commit. Nội dung không sai, chỉ khó đọc. Quy tắc
+  cấm amend nên tôi không sửa lại. Bạn có muốn tôi thêm một commit docs(audit)
+  nhỏ để thay bằng dạng escape không?
+
+  Kết quả đối chiếu. Cả 5 lỗi đều khớp với git history, không lỗi nào bị loại.
+
+  Ba lỗi chính:
+  1. Parse ngày không có múi giờ (46a664c, countdown.js (js/countdown.js), dòng
+     21–24), sửa ở 8a564c7.
+  2. Bộ đếm chết sau bfcache (46a664c, dòng 52 và 56), sửa ở a80a1c7. Tài liệu
+     ghi rõ đây là mô phỏng, chưa kiểm chứng bằng bfcache thật.
+  3. Chuỗi toàn ký tự vô hình qua được sanitize (69e0975, sanitize.js
+     (js/sanitize.js) dòng 10), sửa ở 3426c18.
+
+  Hai lỗi bổ sung:
+  4. Mất focus sau Try again (b28912f), sửa ở 6fff7fa.
+  5. Thông báo lỗi cũ không tự xóa (b28912f), sửa ở 65a1238.
+
+  Những chỗ tôi đã chỉnh hoặc thêm cho khớp thực tế:
+  - Lỗi 3, thứ tự xử lý: ở 69e0975, sanitizeFields() chạy trước
+    validateFields(). Chuỗi vô hình vẫn qua required vì sanitize không loại nó.
+    Mô tả của bạn đúng, tôi chỉ ghi rõ thêm thứ tự này.
+  - Lỗi 3, cách sửa: commit 3426c18 còn thêm kiểm tra VISIBLE_CHARACTER để trả
+    về chuỗi rỗng khi không còn ký tự nhìn thấy được. Danh sách ký tự là liệt kê
+    cụ thể, không phải mọi ký tự định dạng Unicode. Tôi ghi giới hạn này vào
+    tài liệu.
+  - Lỗi 1, cách tái hiện: module không có sẵn trong Console, nên tôi viết bước
+    tái hiện là await import('/js/countdown.js') và đánh dấu đó chỉ là ví dụ.
+    Con số lệch 7 giờ lấy từ mô tả của bạn.
+  - Lỗi 5: bạn không nêu bước tái hiện trong Console, nên tài liệu ghi xác nhận
+    bằng đọc diff và nói thẳng là không có repro riêng.
+  - Prompt rà soát: tôi không có nguyên văn các prompt, nên tài liệu chỉ mô tả
+    chung là "adversarial review prompt" mà không bịa nội dung. Dòng "Audit"
+    trong TASK_DECOMPOSITION.md yêu cầu ghi prompt, nên nếu muốn bạn có thể dán
+    nguyên văn vào sau.
