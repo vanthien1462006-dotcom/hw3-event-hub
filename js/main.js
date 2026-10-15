@@ -44,9 +44,14 @@ const STATUS_MESSAGES = Object.freeze({
 
 let registeredName = '';
 
-function renderState(newState) {
+function renderState(newState, previousState) {
   form.dataset.state = newState;
   submitBtn.disabled = newState === STATES.SUBMITTING;
+
+  if (previousState === STATES.ERROR && newState === STATES.IDLE) {
+    fields[0].focus();
+  }
+
   retryBtn.hidden = newState !== STATES.ERROR;
   statusNode.textContent = STATUS_MESSAGES[newState](registeredName);
 
