@@ -45,15 +45,32 @@ export function startCountdown({ targetIso, onTick, onDone }) {
     }
   }
 
+  function handlePageHide(event) {
+    if (event.persisted) {
+      clearTimeout(timerId);
+      return;
+    }
+    stop();
+  }
+
+  function handlePageShow(event) {
+    if (event.persisted) {
+      clearTimeout(timerId);
+      tick();
+    }
+  }
+
   function stop() {
     clearTimeout(timerId);
     timerId = null;
     document.removeEventListener('visibilitychange', handleVisibilityChange);
-    window.removeEventListener('pagehide', stop);
+    window.removeEventListener('pagehide', handlePageHide);
+    window.removeEventListener('pageshow', handlePageShow);
   }
 
   document.addEventListener('visibilitychange', handleVisibilityChange);
-  window.addEventListener('pagehide', stop);
+  window.addEventListener('pagehide', handlePageHide);
+  window.addEventListener('pageshow', handlePageShow);
   tick();
 
   return stop;
