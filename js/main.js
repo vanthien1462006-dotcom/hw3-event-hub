@@ -1,6 +1,7 @@
 import { startCountdown } from './countdown.js';
 import { STATES, createFormMachine } from './form-state.js';
 import { mockSubmit } from './mock-api.js';
+import { sanitizeText } from './sanitize.js';
 
 const eventTime = document.querySelector('#event-time');
 const doneMessage = document.querySelector('#countdown-done');
@@ -42,11 +43,21 @@ const STATUS_MESSAGES = Object.freeze({
   [STATES.ERROR]: () => 'Something went wrong. Please try again.',
 });
 
+const FIELD_LIMITS = Object.freeze({ name: 80, email: 254, message: 300 });
+
 let registeredName = '';
+let idempotencyKey = null;
+let latestRequestId = 0;
 
 function renderState(newState, previousState) {
+  const isBusy = newState === STATES.SUBMITTING;
+
   form.dataset.state = newState;
-  submitBtn.disabled = newState === STATES.SUBMITTING;
+  form.setAttribute('aria-busy', String(isBusy));
+  submitBtn.disabled = isBusy;
+  fields.forEach((field) => {
+    field.disabled = isBusy;
+  });
 
   if (previousState === STATES.ERROR && newState === STATES.IDLE) {
     fields[0].focus();
@@ -93,27 +104,60 @@ function clearFieldErrors() {
   fields.forEach(clearFieldError);
 }
 
+function sanitizeFields() {
+  fields.forEach((field) => {
+    const clean = sanitizeText(field.value, FIELD_LIMITS[field.name]);
+    field.value = field.type === 'email' ? clean.toLowerCase() : clean;
+  });
+}
+
+async function register(payload) {
+  const requestId = ++latestRequestId;
+
+  try {
+    await mockSubmit(payload);
+
+    if (requestId !== latestRequestId) {
+      return;
+    }
+
+    idempotencyKey = null;
+    registeredName = payload.name;
+    machine.send('RESOLVE');
+    form.reset();
+    clearFieldErrors();
+  } catch {
+    if (requestId === latestRequestId) {
+      machine.send('REJECT');
+    }
+  } finally {
+    if (requestId === latestRequestId && machine.getState() === STATES.SUBMITTING) {
+      machine.send('REJECT');
+    }
+  }
+}
+
 function handleSubmit(event) {
   event.preventDefault();
 
-  if (machine.getState() !== STATES.IDLE || !validateFields()) {
+  if (machine.getState() !== STATES.IDLE) {
     return;
   }
 
-  const payload = Object.fromEntries(new FormData(form));
-  registeredName = payload.name;
-  machine.send('SUBMIT');
+  sanitizeFields();
 
-  mockSubmit(payload).then(
-    () => {
-      machine.send('RESOLVE');
-      form.reset();
-      clearFieldErrors();
-    },
-    () => {
-      machine.send('REJECT');
-    },
-  );
+  if (!validateFields()) {
+    return;
+  }
+
+  idempotencyKey ??= crypto.randomUUID();
+  const payload = { ...Object.fromEntries(new FormData(form)), idempotencyKey };
+
+  if (!machine.send('SUBMIT')) {
+    return;
+  }
+
+  register(payload);
 }
 
 form.addEventListener('submit', handleSubmit);
