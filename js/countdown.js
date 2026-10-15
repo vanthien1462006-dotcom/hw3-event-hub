@@ -3,6 +3,19 @@ const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;
 const SECONDS_PER_DAY = 86400;
 
+const ISO_UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+const ISO_SECONDS_LENGTH = 19;
+
+function parseUtcIso(value) {
+  if (typeof value !== 'string' || !ISO_UTC_PATTERN.test(value)) {
+    return NaN;
+  }
+
+  const ms = Date.parse(value);
+  const roundTrip = Number.isNaN(ms) ? '' : new Date(ms).toISOString();
+  return roundTrip.slice(0, ISO_SECONDS_LENGTH) === value.slice(0, ISO_SECONDS_LENGTH) ? ms : NaN;
+}
+
 export function getRemaining(targetMs, nowMs) {
   const diff = targetMs - nowMs;
   const totalMs = Number.isFinite(diff) ? Math.max(0, diff) : 0;
@@ -18,9 +31,9 @@ export function getRemaining(targetMs, nowMs) {
 }
 
 export function startCountdown({ targetIso, onTick, onDone }) {
-  const targetMs = Date.parse(targetIso);
+  const targetMs = parseUtcIso(targetIso);
   if (Number.isNaN(targetMs)) {
-    throw new Error(`Invalid countdown target: "${targetIso}" is not a valid ISO 8601 date.`);
+    throw new Error(`Invalid countdown target: "${targetIso}" must be an existing UTC date in ISO 8601 form ending with "Z", e.g. 2027-01-15T02:00:00Z.`);
   }
 
   let timerId = null;
