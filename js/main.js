@@ -84,11 +84,13 @@ function validateFields() {
   return firstInvalid === null;
 }
 
+function clearFieldError(field) {
+  document.querySelector(`#${field.id}-error`).textContent = '';
+  field.removeAttribute('aria-invalid');
+}
+
 function clearFieldErrors() {
-  fields.forEach((field) => {
-    document.querySelector(`#${field.id}-error`).textContent = '';
-    field.removeAttribute('aria-invalid');
-  });
+  fields.forEach(clearFieldError);
 }
 
 function handleSubmit(event) {
@@ -115,7 +117,8 @@ function handleSubmit(event) {
 }
 
 form.addEventListener('submit', handleSubmit);
-form.addEventListener('input', () => {
+form.addEventListener('input', (event) => {
+  clearFieldError(event.target);
   machine.send('RESET');
 });
 retryBtn.addEventListener('click', () => {
